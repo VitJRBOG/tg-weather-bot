@@ -1,1 +1,8 @@
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Project resource files
 config.json
