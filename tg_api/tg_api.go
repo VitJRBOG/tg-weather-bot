@@ -8,11 +8,6 @@ import (
 	"net/url"
 )
 
-type Result struct {
-	OK      bool     `json:"ok"`
-	Updates []Update `json:"result"`
-}
-
 type Update struct {
 	UpdateID int     `json:"update_id"`
 	Message  Message `json:"message"`
@@ -34,11 +29,11 @@ type Chat struct {
 	ID int `json:"id"`
 }
 
-func GetUpdates(accessToken, method string, values url.Values) Result {
+func GetUpdates(accessToken, method string, values url.Values) []Update {
 	u := makeURL(accessToken, method)
 	rawData := sendRequest(u, values)
-	result := parseUpdates(rawData)
-	return result
+	updates := parseUpdates(rawData)
+	return updates
 }
 
 func SendMessage(accessToken string, values url.Values) {
@@ -52,13 +47,23 @@ func makeURL(accessToken, method string) string {
 	return u
 }
 
-func parseUpdates(rawData []byte) Result {
-	var result Result
-	err := json.Unmarshal(rawData, &result)
+func parseUpdates(rawData []byte) []Update {
+	var data struct {
+		OK          bool     `json:"ok"`
+		Updates     []Update `json:"result"`
+		ErrorCode   int      `json:"error_code"`
+		Description string   `json:"description"`
+	}
+	err := json.Unmarshal(rawData, &data)
 	if err != nil {
 		panic(err.Error())
 	}
-	return result
+
+	if data.OK {
+		return data.Updates
+	}
+
+	panic(fmt.Errorf("error %d: %s", data.ErrorCode, data.Description))
 }
 
 func sendRequest(u string, values url.Values) []byte {

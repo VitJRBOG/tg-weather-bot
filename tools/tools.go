@@ -8,6 +8,7 @@ import (
 type Config struct {
 	AccessToken   string `json:"access_token"`
 	UpdatesOffset int    `json:"updates_offset"`
+	Timeout       int    `json:"timeout"`
 	PogodaApiURL  string `json:"pogoda_api_url"`
 }
 
