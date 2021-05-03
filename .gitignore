@@ -6,3 +6,6 @@
 
 # Project resource files
 config.json
+
+# Project bin
+TelegramWeatherBot
