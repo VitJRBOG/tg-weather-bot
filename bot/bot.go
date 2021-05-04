@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/VitJRBOG/TelegramWeatherBot/pogoda_api"
@@ -35,7 +36,7 @@ func checkingChat(cfg tools.Config) {
 				forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", updateData.Message.Text)
 				forecastAvailable := checkWeatherForecast(forecast)
 				if forecastAvailable {
-					sendWeatherForecast(cfg, forecast, updateData.Message.Chat.ID)
+					sendWeatherForecast(cfg, forecast.OrenburgOblast, updateData.Message.Chat.ID)
 				} else {
 					sendMessageAboutForecastUnavailable(cfg, updateData.Message)
 				}
@@ -72,24 +73,91 @@ func checkWeatherForecast(forecast pogoda_api.Forecast) bool {
 	return forecast.OrenburgOblast.Date != ""
 }
 
-func sendWeatherForecast(cfg tools.Config, forecast pogoda_api.Forecast, chatID int) {
-	f := fmt.Sprintf("Оренбургская область\nПрогноз погоды на: %s.\n\n"+
-		"Ночью %s, %s. "+
-		"Температура ночью %s. Ветер %s, %s м/с.\n\n"+
-		"Днем %s, %s. "+
-		"Температура днем %s. Ветер %s, %s м/с.",
-		forecast.OrenburgOblast.Date,
-		forecast.OrenburgOblast.NightCloud, forecast.OrenburgOblast.NightPrec,
-		forecast.OrenburgOblast.NightTemp, forecast.OrenburgOblast.NightWindDirrect,
-		forecast.OrenburgOblast.NightWindSpeed,
-		forecast.OrenburgOblast.DayCloud, forecast.OrenburgOblast.DayPrec,
-		forecast.OrenburgOblast.DayTemp, forecast.OrenburgOblast.DayWindDirrect,
-		forecast.OrenburgOblast.DayWindSpeed)
+func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, chatID int) {
+	f := fmt.Sprintf("Оренбургская область\nПрогноз погоды на: %s.\n\n", localForecast.Date)
+
+	f = makeNightForecastMessage(f, localForecast)
+	f = makeDayForecastMessage(f, localForecast)
+
 	values := url.Values{
 		"chat_id": {strconv.Itoa(chatID)},
 		"text":    {f},
 	}
 	tg_api.SendMessage(cfg.AccessToken, values)
+}
+
+func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string {
+	if localForecast.NightCloud != "" && localForecast.NightPrec != "" {
+		f += fmt.Sprintf("Ночью %s, %s.\n", localForecast.NightCloud, localForecast.NightPrec)
+	} else {
+		switch true {
+		case localForecast.NightCloud != "":
+			f += fmt.Sprintf("Ночью %s.\n\n", localForecast.NightCloud)
+		case localForecast.NightPrec != "":
+			f += fmt.Sprintf("Ночью %s.\n\n", localForecast.NightPrec)
+		}
+	}
+
+	if localForecast.NightTemp != "" {
+		f += fmt.Sprintf("Температура ночью %s°C",
+			strings.ReplaceAll(localForecast.NightTemp, ",", "..."))
+	}
+
+	if localForecast.NightTempComm != "" {
+		f += fmt.Sprintf(", %sC.\n",
+			strings.ToLower(strings.ReplaceAll(localForecast.NightTempComm, ",", "...")))
+	} else {
+		f += ".\n"
+	}
+
+	if localForecast.NightWindDirrect != "" && localForecast.NightWindSpeed != "" {
+		f += fmt.Sprintf("Ветер %s, %s м/с. ",
+			localForecast.NightWindDirrect, localForecast.NightWindSpeed)
+	}
+
+	if localForecast.NightWindComm != "" {
+		f += fmt.Sprintf("%s.\n", localForecast.NightWindComm)
+	} else {
+		f += "\n"
+	}
+
+	return f
+}
+
+func makeDayForecastMessage(f string, localForecast pogoda_api.Weather) string {
+	if localForecast.DayCloud != "" && localForecast.DayPrec != "" {
+		f += fmt.Sprintf("\nДнем %s, %s.\n", localForecast.DayCloud, localForecast.DayPrec)
+	} else {
+		switch true {
+		case localForecast.DayCloud != "":
+			f += fmt.Sprintf("Днем %s.\n\n", localForecast.DayCloud)
+		case localForecast.DayPrec != "":
+			f += fmt.Sprintf("Днем %s.\n\n", localForecast.DayPrec)
+		}
+	}
+
+	if localForecast.DayTemp != "" {
+		f += fmt.Sprintf("Температура днем %s°C",
+			strings.ReplaceAll(localForecast.DayTemp, ",", "..."))
+	}
+
+	if localForecast.DayTempComm != "" {
+		f += fmt.Sprintf(", %sC.\n",
+			strings.ToLower(strings.ReplaceAll(localForecast.DayTempComm, ",", "...")))
+	} else {
+		f += ".\n"
+	}
+
+	if localForecast.DayWindDirrect != "" && localForecast.DayWindSpeed != "" {
+		f += fmt.Sprintf("Ветер %s, %s м/с. ",
+			localForecast.DayWindDirrect, localForecast.DayWindSpeed)
+	}
+
+	if localForecast.DayWindComm != "" {
+		f += fmt.Sprintf("%s.", localForecast.DayWindComm)
+	}
+
+	return f
 }
 
 func unixTimestampToHumanReadableFormat(ut int64) string {
