@@ -30,22 +30,26 @@ func checkingChat(cfg tools.Config) {
 			continue
 		}
 
-		for _, updateData := range updates {
-			commandRecognized := checkUserCommand(updateData.Message.Text)
-			if commandRecognized {
-				forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", updateData.Message.Text)
-				forecastAvailable := checkWeatherForecast(forecast)
-				if forecastAvailable {
-					sendWeatherForecast(cfg, forecast.OrenburgOblast, updateData.Message.Chat.ID)
-				} else {
-					sendMessageAboutForecastUnavailable(cfg, updateData.Message)
-				}
-			} else {
-				sendHint(cfg, updateData.Message)
-			}
-		}
+		answering(cfg, updates)
 
 		cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
+	}
+}
+
+func answering(cfg tools.Config, updates []tg_api.Update) {
+	for _, updateData := range updates {
+		commandRecognized := checkUserCommand(updateData.Message.Text)
+		if commandRecognized {
+			forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", updateData.Message.Text)
+			forecastAvailable := checkWeatherForecast(forecast)
+			if forecastAvailable {
+				sendWeatherForecast(cfg, forecast.OrenburgOblast, updateData.Message.Chat.ID)
+			} else {
+				sendMessageAboutForecastUnavailable(cfg, updateData.Message)
+			}
+		} else {
+			sendHint(cfg, updateData.Message)
+		}
 	}
 }
 
