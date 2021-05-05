@@ -30,7 +30,11 @@ func checkingChat(cfg tools.Config) {
 
 		updates := tg_api.GetUpdates(cfg.AccessToken, "getUpdates", values)
 
-		if len(updates) == 0 || len(updates) > 1 {
+		if len(updates) == 0 {
+			continue
+		}
+
+		if len(updates) > 1 {
 			m = ""
 			cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
 			continue
