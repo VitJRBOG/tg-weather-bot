@@ -37,9 +37,8 @@ func makeURL(pogodaApiURL, method string, values map[string]string) string {
 }
 
 type Forecast struct {
-	// TODO: уточнить города
-	Orenburg       Weather `json:"111"` // но это не точно, возможно Бузулук
-	Buzuluk        Weather `json:"106"` // но это не точно, возможно Оренбург
+	Orenburg       Weather `json:"111"`
+	Buzuluk        Weather `json:"106"`
 	Orsk           Weather `json:"112"`
 	OrenburgOblast Weather `json:"182"`
 }
