@@ -92,14 +92,20 @@ func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, cha
 
 func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string {
 	if localForecast.NightCloud != "" && localForecast.NightPrec != "" {
-		f += fmt.Sprintf("Ночью %s, %s.\n", localForecast.NightCloud, localForecast.NightPrec)
+		f += fmt.Sprintf("Ночью %s, %s.", localForecast.NightCloud, localForecast.NightPrec)
 	} else {
 		switch true {
 		case localForecast.NightCloud != "":
-			f += fmt.Sprintf("Ночью %s.\n\n", localForecast.NightCloud)
+			f += fmt.Sprintf("Ночью %s.", localForecast.NightCloud)
 		case localForecast.NightPrec != "":
-			f += fmt.Sprintf("Ночью %s.\n\n", localForecast.NightPrec)
+			f += fmt.Sprintf("Ночью %s.", localForecast.NightPrec)
 		}
+	}
+
+	if localForecast.NightPrecComm != "" {
+		f += fmt.Sprintf(" %s.\n", localForecast.NightPrecComm)
+	} else {
+		f += "\n"
 	}
 
 	if localForecast.NightTemp != "" {
@@ -130,14 +136,20 @@ func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string
 
 func makeDayForecastMessage(f string, localForecast pogoda_api.Weather) string {
 	if localForecast.DayCloud != "" && localForecast.DayPrec != "" {
-		f += fmt.Sprintf("\nДнем %s, %s.\n", localForecast.DayCloud, localForecast.DayPrec)
+		f += fmt.Sprintf("\nДнем %s, %s.", localForecast.DayCloud, localForecast.DayPrec)
 	} else {
 		switch true {
 		case localForecast.DayCloud != "":
-			f += fmt.Sprintf("Днем %s.\n\n", localForecast.DayCloud)
+			f += fmt.Sprintf("Днем %s.", localForecast.DayCloud)
 		case localForecast.DayPrec != "":
-			f += fmt.Sprintf("Днем %s.\n\n", localForecast.DayPrec)
+			f += fmt.Sprintf("Днем %s.", localForecast.DayPrec)
 		}
+	}
+
+	if localForecast.DayPrecComm != "" {
+		f += fmt.Sprintf(" %s.\n", localForecast.DayPrecComm)
+	} else {
+		f += "\n"
 	}
 
 	if localForecast.DayTemp != "" {

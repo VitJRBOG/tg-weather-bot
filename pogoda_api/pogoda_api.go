@@ -58,6 +58,7 @@ type Weather struct {
 	NightCommonComm  string `json:"nightcommoncomm"`
 	DayCloud         string `json:"daycloud"`
 	DayPrec          string `json:"dayprec"`
+	DayPrecComm      string `json:"daypreccomm"`
 	DayPrecVision    bool   `json:"dayprecvision"`
 	DayWindDirrect   string `json:"daywinddirrect"`
 	DayWindSpeed     string `json:"daywindspeed"`
