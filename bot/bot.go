@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"database/sql"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -15,15 +16,12 @@ import (
 )
 
 func Start(cfg tools.Config) {
-	checkingChat(cfg)
+	checkingChats(cfg)
 }
 
-func checkingChat(cfg tools.Config) {
+func checkingChats(cfg tools.Config) {
 	dbase := db.Connect(cfg.DBConnection)
-
-	waitingForDate := false
-	district := 0
-	m := ""
+	handlers := make(map[int]chan tg_api.Message)
 
 	for {
 		values := url.Values{
@@ -37,72 +35,102 @@ func checkingChat(cfg tools.Config) {
 			continue
 		}
 
-		for _, update := range updates {
-			var user db.User
-
-			user.UserID = update.Message.From.ID
-
-			if users := user.SelectByUserID(dbase); len(users) == 0 {
-				user.Name = fmt.Sprintf("%s %s",
-					update.Message.From.FirstName, update.Message.From.LastName)
-				user.Username = update.Message.From.Username
-				user.RequestCount = 1
-				user.InsertInto(dbase) // пропущена обработка возвращаемых значений
-			} else {
-				users[0].RequestCount++
-				users[0].Update(dbase) // пропущена обработка возвращаемых значений
-			}
-		}
-
-		if len(updates) > 1 {
-			m = ""
-			cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
-			continue
-		}
-
-		if waitingForDate {
-			if dateRecognized := checkDate(updates[0].Message.Text); dateRecognized {
-				forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", updates[0].Message.Text)
-				var localForecast pogoda_api.Weather
-				switch district {
-				case 182:
-					localForecast = forecast.OrenburgOblast
-				case 111:
-					localForecast = forecast.Orenburg
-				case 106:
-					localForecast = forecast.Buzuluk
-				case 112:
-					localForecast = forecast.Orsk
+		for i := 0; i < len(updates); i++ {
+			if channel, exist := handlers[updates[i].Message.From.ID]; exist {
+				select {
+				case channel <- updates[i].Message:
+					continue
+				default:
+					delete(handlers, updates[i].Message.From.ID)
 				}
-				forecastAvailable := checkWeatherForecast(localForecast)
-				if forecastAvailable {
-					sendWeatherForecast(cfg, localForecast, updates[0].Message.Chat.ID)
-				} else {
-					sendMessageAboutForecastUnavailable(cfg, updates[0].Message)
-				}
-				waitingForDate = false
-			} else {
-				m = fmt.Sprintf("Дата не распознана. "+
-					"Для получения прогноза погоды отправьте дату "+
-					"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
-					unixTimestampToHumanReadableFormat(time.Now().Unix()))
-				sendHint(cfg, m, updates[0].Message.Chat.ID)
 			}
-		} else {
-			if district, m = checkDistrict(updates[0].Message.Text); district > 0 {
-				m = fmt.Sprintf("%s Для получения прогноза погоды отправьте дату "+
-					"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
-					m, unixTimestampToHumanReadableFormat(time.Now().Unix()))
-				sendHint(cfg, m, updates[0].Message.Chat.ID)
-				waitingForDate = true
-			} else {
-				sendHint(cfg, m, updates[0].Message.Chat.ID)
-			}
+			handlers[updates[i].Message.From.ID] = make(chan tg_api.Message)
+			go handlingRequest(dbase, handlers[updates[i].Message.From.ID], cfg)
+			handlers[updates[i].Message.From.ID] <- updates[i].Message
 		}
 
-		m = ""
 		cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
 	}
+}
+
+func handlingRequest(dbase *sql.DB, channel chan tg_api.Message, cfg tools.Config) {
+	district := 0
+	for {
+		messageData := <-channel
+
+		var user db.User
+
+		user.UserID = messageData.From.ID
+
+		if users := user.SelectByUserID(dbase); len(users) == 0 {
+			user.Name = fmt.Sprintf("%s %s",
+				messageData.From.FirstName, messageData.From.LastName)
+			user.Username = messageData.From.Username
+			user.RequestCount = 1
+			user.InsertInto(dbase) // пропущена обработка возвращаемых значений
+		} else {
+			users[0].RequestCount++
+			users[0].Update(dbase) // пропущена обработка возвращаемых значений
+		}
+
+		if district == 0 {
+			district = handlingDistrictSelection(cfg.AccessToken, messageData)
+		} else {
+			ok := handlingDateSelection(cfg, district, messageData)
+			if ok {
+				channel = nil
+				break
+			}
+		}
+	}
+}
+
+func handlingDistrictSelection(accessToken string, messageData tg_api.Message) int {
+	m := ""
+	district := 0
+	if district, m = checkDistrict(messageData.Text); district > 0 {
+		m = fmt.Sprintf("%s Для получения прогноза погоды отправьте дату "+
+			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
+			m, unixTimestampToHumanReadableFormat(time.Now().Unix()))
+		sendHint(accessToken, m, messageData.Chat.ID)
+	} else {
+		sendHint(accessToken, m, messageData.Chat.ID)
+	}
+
+	return district
+}
+
+func handlingDateSelection(cfg tools.Config, district int, messageData tg_api.Message) bool {
+	ok := false
+	if dateRecognized := checkDate(messageData.Text); dateRecognized {
+		forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", messageData.Text)
+		var localForecast pogoda_api.Weather
+		switch district {
+		case 182:
+			localForecast = forecast.OrenburgOblast
+		case 111:
+			localForecast = forecast.Orenburg
+		case 106:
+			localForecast = forecast.Buzuluk
+		case 112:
+			localForecast = forecast.Orsk
+		}
+		forecastAvailable := checkWeatherForecast(localForecast)
+		if forecastAvailable {
+			sendWeatherForecast(cfg, localForecast, messageData.Chat.ID)
+		} else {
+			sendMessageAboutForecastUnavailable(cfg, messageData)
+		}
+		ok = true
+	} else {
+		m := fmt.Sprintf("Дата не распознана. "+
+			"Для получения прогноза погоды отправьте дату "+
+			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
+			unixTimestampToHumanReadableFormat(time.Now().Unix()))
+		sendHint(cfg.AccessToken, m, messageData.Chat.ID)
+	}
+
+	return ok
 }
 
 func checkDistrict(message string) (int, string) {
@@ -134,12 +162,12 @@ func checkWeatherForecast(localForecast pogoda_api.Weather) bool {
 	return localForecast.Date != ""
 }
 
-func sendHint(cfg tools.Config, m string, chatId int) {
+func sendHint(accessToken, m string, chatId int) {
 	values := url.Values{
 		"chat_id": {strconv.Itoa(chatId)},
 		"text":    {m},
 	}
-	tg_api.SendMessage(cfg.AccessToken, values)
+	tg_api.SendMessage(accessToken, values)
 }
 
 func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, chatID int) {
