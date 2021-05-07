@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/VitJRBOG/TelegramWeatherBot/db"
 	"github.com/VitJRBOG/TelegramWeatherBot/pogoda_api"
 	"github.com/VitJRBOG/TelegramWeatherBot/tg_api"
 	"github.com/VitJRBOG/TelegramWeatherBot/tools"
@@ -18,6 +19,8 @@ func Start(cfg tools.Config) {
 }
 
 func checkingChat(cfg tools.Config) {
+	dbase := db.Connect(cfg.DBConnection)
+
 	waitingForDate := false
 	district := 0
 	m := ""
@@ -32,6 +35,23 @@ func checkingChat(cfg tools.Config) {
 
 		if len(updates) == 0 {
 			continue
+		}
+
+		for _, update := range updates {
+			var user db.User
+
+			user.UserID = update.Message.From.ID
+
+			if users := user.SelectByUserID(dbase); len(users) == 0 {
+				user.Name = fmt.Sprintf("%s %s",
+					update.Message.From.FirstName, update.Message.From.LastName)
+				user.Username = update.Message.From.Username
+				user.RequestCount = 1
+				user.InsertInto(dbase) // пропущена обработка возвращаемых значений
+			} else {
+				users[0].RequestCount++
+				users[0].Update(dbase) // пропущена обработка возвращаемых значений
+			}
 		}
 
 		if len(updates) > 1 {
