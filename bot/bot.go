@@ -150,12 +150,15 @@ func checkDistrict(message string) (int, string) {
 }
 
 func checkDate(message string) bool {
-	matched, err := regexp.MatchString("[0-9]{4}-[0-9]{2}-[0-9]{2}", message)
-	if err != nil {
-		panic(err.Error())
+	if len([]rune(message)) == 10 {
+		matched, err := regexp.MatchString("[0-9]{4}-[0-9]{2}-[0-9]{2}", message)
+		if err != nil {
+			panic(err.Error())
+		}
+		return matched
 	}
 
-	return matched
+	return false
 }
 
 func checkWeatherForecast(localForecast pogoda_api.Weather) bool {
