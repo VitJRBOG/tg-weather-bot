@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/VitJRBOG/TelegramWeatherBot/tools"
 	_ "github.com/go-sql-driver/mysql"
@@ -48,10 +49,44 @@ func (u *User) InsertInto(db *sql.DB) (int, int) {
 	return int(id), int(count)
 }
 
-func (u *User) SelectByUserID(db *sql.DB) []User {
-	query := `SELECT * FROM user WHERE user_id = ?`
+func (u *User) SelectFrom(db *sql.DB) []User {
+	query := `SELECT * FROM user`
 
-	rows, err := db.Query(query, u.UserID)
+	var f []interface{}
+
+	if u.ID > 0 {
+		query += ` WHERE id = ?`
+		f = append(f, u.ID)
+	}
+
+	if u.Name != "" {
+		if strings.Contains(query, "WHERE") {
+			query += ` AND name = ?`
+		} else {
+			query += ` WHERE name = ?`
+		}
+		f = append(f, u.Name)
+	}
+
+	if u.Username != "" {
+		if strings.Contains(query, "WHERE") {
+			query += ` AND username = ?`
+		} else {
+			query += ` WHERE username = ?`
+		}
+		f = append(f, u.Username)
+	}
+
+	if u.UserID > 0 {
+		if strings.Contains(query, "WHERE") {
+			query += ` AND user_id = ?`
+		} else {
+			query += ` WHERE user_id = ?`
+		}
+		f = append(f, u.UserID)
+	}
+
+	rows, err := db.Query(query, f...)
 	if err != nil {
 		panic(err.Error())
 	}

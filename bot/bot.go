@@ -62,7 +62,7 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message, cfg tools.Confi
 
 		user.UserID = messageData.From.ID
 
-		if users := user.SelectByUserID(dbase); len(users) == 0 {
+		if users := user.SelectFrom(dbase); len(users) == 0 {
 			user.Name = fmt.Sprintf("%s %s",
 				messageData.From.FirstName, messageData.From.LastName)
 			user.Username = messageData.From.Username
