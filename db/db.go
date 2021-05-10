@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"runtime/debug"
 	"strings"
 
 	"github.com/VitJRBOG/TelegramWeatherBot/tools"
@@ -28,28 +30,28 @@ type User struct {
 	RequestCount int
 }
 
-func (u *User) InsertInto(db *sql.DB) (int, int) {
+func (u *User) InsertInto(db *sql.DB) (int, int, error) {
 	query := `INSERT INTO user(name, username, user_id, request_count) values(?, ?, ?, ?)`
 
 	result, err := db.Exec(query, u.Name, u.Username, u.UserID, u.RequestCount)
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
 	count, err := result.RowsAffected()
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
-	return int(id), int(count)
+	return int(id), int(count), nil
 }
 
-func (u *User) SelectFrom(db *sql.DB) []User {
+func (u *User) SelectFrom(db *sql.DB) ([]User, error) {
 	query := `SELECT * FROM user`
 
 	var f []interface{}
@@ -88,12 +90,12 @@ func (u *User) SelectFrom(db *sql.DB) []User {
 
 	rows, err := db.Query(query, f...)
 	if err != nil {
-		panic(err.Error())
+		return []User{}, err
 	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Printf("%s\n\n%s\n", err, debug.Stack())
 		}
 	}()
 
@@ -111,29 +113,29 @@ func (u *User) SelectFrom(db *sql.DB) []User {
 	}
 
 	if err := rows.Err(); err != nil {
-		panic(err.Error())
+		return []User{}, err
 	}
 
-	return users
+	return users, nil
 }
 
-func (u *User) Update(db *sql.DB) (int, int) {
+func (u *User) Update(db *sql.DB) (int, int, error) {
 	query := `UPDATE user SET name = ?, username = ?, user_id = ?, request_count = ? WHERE id = ?`
 
 	result, err := db.Exec(query, u.Name, u.Username, u.UserID, u.RequestCount, u.ID)
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
 	count, err := result.RowsAffected()
 	if err != nil {
-		panic(err.Error())
+		return 0, 0, err
 	}
 
-	return int(id), int(count)
+	return int(id), int(count), nil
 }

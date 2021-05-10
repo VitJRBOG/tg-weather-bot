@@ -3,8 +3,10 @@ package bot
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/url"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -58,20 +60,36 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message, cfg tools.Confi
 	for {
 		messageData := <-channel
 
-		var user db.User
+		go func(sender tg_api.User) {
+			var user db.User
 
-		user.UserID = messageData.From.ID
+			user.UserID = sender.ID
 
-		if users := user.SelectFrom(dbase); len(users) == 0 {
-			user.Name = fmt.Sprintf("%s %s",
-				messageData.From.FirstName, messageData.From.LastName)
-			user.Username = messageData.From.Username
-			user.RequestCount = 1
-			user.InsertInto(dbase) // пропущена обработка возвращаемых значений
-		} else {
-			users[0].RequestCount++
-			users[0].Update(dbase) // пропущена обработка возвращаемых значений
-		}
+			users, err := user.SelectFrom(dbase)
+			if err != nil {
+				log.Printf("%s\n%s\n", err, debug.Stack())
+				return
+			}
+
+			if len(users) == 0 {
+				user.Name = fmt.Sprintf("%s %s",
+					sender.FirstName, sender.LastName)
+				user.Username = sender.Username
+				user.RequestCount = 1
+				_, _, err := user.InsertInto(dbase)
+				if err != nil {
+					log.Printf("%s\n%s\n", err, debug.Stack())
+					return
+				}
+			} else {
+				users[0].RequestCount++
+				_, _, err := users[0].Update(dbase)
+				if err != nil {
+					log.Printf("%s\n%s\n", err, debug.Stack())
+					return
+				}
+			}
+		}(messageData.From)
 
 		if district == 0 {
 			district = handlingDistrictSelection(cfg.AccessToken, messageData)
