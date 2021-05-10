@@ -21,11 +21,11 @@ func Connect(dbConnection tools.DBConnection) *sql.DB {
 }
 
 type User struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Username     string `json:"username"`
-	UserID       int    `json:"user_id"`
-	RequestCount int    `json:"request_count"`
+	ID           int
+	Name         string
+	Username     string
+	UserID       int
+	RequestCount int
 }
 
 func (u *User) InsertInto(db *sql.DB) (int, int) {
