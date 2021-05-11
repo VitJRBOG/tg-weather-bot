@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VitJRBOG/TelegramWeatherBot/db"
-	"github.com/VitJRBOG/TelegramWeatherBot/pogoda_api"
-	"github.com/VitJRBOG/TelegramWeatherBot/tg_api"
-	"github.com/VitJRBOG/TelegramWeatherBot/tools"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/db"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/pogoda_api"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/tg_api"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/tools"
 )
 
 func Start(cfg tools.Config) {

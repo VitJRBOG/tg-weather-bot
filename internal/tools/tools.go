@@ -27,7 +27,7 @@ func (c *Config) UpdateUpdatesOffset(newDate int) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile("config.json", content, 0644)
+	err = ioutil.WriteFile("../configs/config.json", content, 0644)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (c *Config) UpdateUpdatesOffset(newDate int) error {
 
 func GetConfig() (Config, error) {
 	var c Config
-	content, err := ioutil.ReadFile("config.json")
+	content, err := ioutil.ReadFile("../configs/config.json")
 	if err != nil {
 		return Config{}, err
 	}

@@ -4,8 +4,8 @@ import (
 	"log"
 	"runtime/debug"
 
-	"github.com/VitJRBOG/TelegramWeatherBot/bot"
-	"github.com/VitJRBOG/TelegramWeatherBot/tools"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/bot"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/tools"
 )
 
 func main() {

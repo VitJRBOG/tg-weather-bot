@@ -5,10 +5,10 @@
 .DS_Store
 
 # Project resource files
-config.json
+configs/config.json
 
 # Project bin
-TelegramWeatherBot
+bin/
 
 # Other junk
 upd.sh

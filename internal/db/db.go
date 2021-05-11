@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/VitJRBOG/TelegramWeatherBot/tools"
+	"github.com/VitJRBOG/TelegramWeatherBot/internal/tools"
 	_ "github.com/go-sql-driver/mysql"
 )
 
