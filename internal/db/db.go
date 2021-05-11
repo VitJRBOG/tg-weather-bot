@@ -11,9 +11,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func Connect(dbConnection tools.DBConnection) (*sql.DB, error) {
+func Connect(dbConn tools.DBConn) (*sql.DB, error) {
 	c := fmt.Sprintf("%s:%s@tcp(%s)/%s",
-		dbConnection.Login, dbConnection.Password, dbConnection.Address, dbConnection.DBName)
+		dbConn.Login, dbConn.Password, dbConn.Address, dbConn.DBName)
 	db, err := sql.Open("mysql", c)
 	if err != nil {
 		return nil, err

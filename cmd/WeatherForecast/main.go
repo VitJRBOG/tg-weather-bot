@@ -9,9 +9,9 @@ import (
 )
 
 func main() {
-	cfg, err := tools.GetConfig()
+	botConn, err := tools.GetBotConnectionData()
 	if err != nil {
 		log.Panicf("%s\n%s\n", err, debug.Stack())
 	}
-	bot.Start(cfg)
+	bot.Start(botConn)
 }
