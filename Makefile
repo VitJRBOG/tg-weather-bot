@@ -1,5 +1,5 @@
 run:
-	go run main.go
+	go run cmd/WeatherForecast/main.go
 
 build:
 	go build -o bin/main cmd/WeatherForecast/main.go
