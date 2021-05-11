@@ -22,7 +22,10 @@ func Start(cfg tools.Config) {
 }
 
 func checkingChats(cfg tools.Config) {
-	dbase := db.Connect(cfg.DBConnection)
+	dbase, err := db.Connect(cfg.DBConnection)
+	if err != nil {
+		log.Printf("%s\n\n%s\n", err, debug.Stack())
+	}
 	handlers := make(map[int]chan tg_api.Message)
 
 	for {
@@ -31,7 +34,14 @@ func checkingChats(cfg tools.Config) {
 			"timeout": {strconv.Itoa(cfg.Timeout)},
 		}
 
-		updates := tg_api.GetUpdates(cfg.AccessToken, "getUpdates", values)
+		updates, err := tg_api.GetUpdates(cfg.AccessToken, "getUpdates", values)
+		if err != nil {
+			if strings.Contains(err.Error(), "error 401: Unauthorized") {
+				log.Panicf("%s\n%s\n", err, debug.Stack())
+			}
+			log.Printf("%s\n%s\n", err, debug.Stack())
+			continue
+		}
 
 		if len(updates) == 0 {
 			continue
@@ -51,7 +61,10 @@ func checkingChats(cfg tools.Config) {
 			handlers[updates[i].Message.From.ID] <- updates[i].Message
 		}
 
-		cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
+		err = cfg.UpdateUpdatesOffset(updates[len(updates)-1].UpdateID + 1)
+		if err != nil {
+			log.Panicf("%s\n%s\n", err, debug.Stack())
+		}
 	}
 }
 
@@ -92,9 +105,28 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message, cfg tools.Confi
 		}(messageData.From)
 
 		if district == 0 {
-			district = handlingDistrictSelection(cfg.AccessToken, messageData)
+			var err error
+			district, err = handlingDistrictSelection(cfg.AccessToken, messageData)
+			if err != nil {
+				log.Printf("%s\n%s\n", err, debug.Stack())
+				m := "При выборе региона/города произошла ошибка."
+				if err := sendMessageAboutError(m, cfg.AccessToken, messageData.From.ID); err != nil {
+					log.Printf("%s\n%s\n", err, debug.Stack())
+				}
+				channel = nil
+				return
+			}
 		} else {
-			ok := handlingDateSelection(cfg, district, messageData)
+			ok, err := handlingDateSelection(cfg, district, messageData)
+			if err != nil {
+				log.Printf("%s\n%s\n", err, debug.Stack())
+				m := "При получении прогноза произошла ошибка."
+				if err := sendMessageAboutError(m, cfg.AccessToken, messageData.From.ID); err != nil {
+					log.Printf("%s\n%s\n", err, debug.Stack())
+				}
+				channel = nil
+				return
+			}
 			if ok {
 				channel = nil
 				break
@@ -103,25 +135,36 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message, cfg tools.Confi
 	}
 }
 
-func handlingDistrictSelection(accessToken string, messageData tg_api.Message) int {
+func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (int, error) {
 	m := ""
 	district := 0
 	if district, m = checkDistrict(messageData.Text); district > 0 {
 		m = fmt.Sprintf("%s Для получения прогноза погоды отправьте дату "+
 			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
 			m, unixTimestampToHumanReadableFormat(time.Now().Unix()))
-		sendHint(accessToken, m, messageData.Chat.ID)
+		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
+			return 0, err
+		}
 	} else {
-		sendHint(accessToken, m, messageData.Chat.ID)
+		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
+			return 0, err
+		}
 	}
 
-	return district
+	return district, nil
 }
 
-func handlingDateSelection(cfg tools.Config, district int, messageData tg_api.Message) bool {
+func handlingDateSelection(cfg tools.Config, district int, messageData tg_api.Message) (bool, error) {
 	ok := false
-	if dateRecognized := checkDate(messageData.Text); dateRecognized {
-		forecast := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", messageData.Text)
+	dateRecognized, err := checkDate(messageData.Text)
+	if err != nil {
+		return false, err
+	}
+	if dateRecognized {
+		forecast, err := pogoda_api.GetForecast(cfg.PogodaApiURL, "1", messageData.Text)
+		if err != nil {
+			return false, err
+		}
 		var localForecast pogoda_api.Weather
 		switch district {
 		case 182:
@@ -135,9 +178,13 @@ func handlingDateSelection(cfg tools.Config, district int, messageData tg_api.Me
 		}
 		forecastAvailable := checkWeatherForecast(localForecast)
 		if forecastAvailable {
-			sendWeatherForecast(cfg, localForecast, messageData.Chat.ID)
+			if err := sendWeatherForecast(cfg, localForecast, messageData.Chat.ID); err != nil {
+				return false, err
+			}
 		} else {
-			sendMessageAboutForecastUnavailable(cfg, messageData)
+			if err := sendMessageAboutForecastUnavailable(cfg, messageData); err != nil {
+				return false, err
+			}
 		}
 		ok = true
 	} else {
@@ -145,10 +192,12 @@ func handlingDateSelection(cfg tools.Config, district int, messageData tg_api.Me
 			"Для получения прогноза погоды отправьте дату "+
 			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
 			unixTimestampToHumanReadableFormat(time.Now().Unix()))
-		sendHint(cfg.AccessToken, m, messageData.Chat.ID)
+		if err := sendHint(cfg.AccessToken, m, messageData.Chat.ID); err != nil {
+			return false, err
+		}
 	}
 
-	return ok
+	return ok, nil
 }
 
 func checkDistrict(message string) (int, string) {
@@ -167,31 +216,34 @@ func checkDistrict(message string) (int, string) {
 		"и выберите вариант из списка."
 }
 
-func checkDate(message string) bool {
+func checkDate(message string) (bool, error) {
 	if len([]rune(message)) == 10 {
 		matched, err := regexp.MatchString("[0-9]{4}-[0-9]{2}-[0-9]{2}", message)
 		if err != nil {
-			panic(err.Error())
+			return false, err
 		}
-		return matched
+		return matched, nil
 	}
 
-	return false
+	return false, nil
 }
 
 func checkWeatherForecast(localForecast pogoda_api.Weather) bool {
 	return localForecast.Date != ""
 }
 
-func sendHint(accessToken, m string, chatId int) {
+func sendHint(accessToken, m string, chatId int) error {
 	values := url.Values{
 		"chat_id": {strconv.Itoa(chatId)},
 		"text":    {m},
 	}
-	tg_api.SendMessage(accessToken, values)
+	if err := tg_api.SendMessage(accessToken, values); err != nil {
+		return err
+	}
+	return nil
 }
 
-func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, chatID int) {
+func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, chatID int) error {
 	f := ""
 	f = makeNightForecastMessage(f, localForecast)
 	f = makeDayForecastMessage(f, localForecast)
@@ -200,7 +252,10 @@ func sendWeatherForecast(cfg tools.Config, localForecast pogoda_api.Weather, cha
 		"chat_id": {strconv.Itoa(chatID)},
 		"text":    {f},
 	}
-	tg_api.SendMessage(cfg.AccessToken, values)
+	if err := tg_api.SendMessage(cfg.AccessToken, values); err != nil {
+		return err
+	}
+	return nil
 }
 
 func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string {
@@ -296,11 +351,26 @@ func unixTimestampToHumanReadableFormat(ut int64) string {
 	return date
 }
 
-func sendMessageAboutForecastUnavailable(cfg tools.Config, messageData tg_api.Message) {
+func sendMessageAboutForecastUnavailable(cfg tools.Config, messageData tg_api.Message) error {
 	m := "Не удалось получить прогноз на указанную дату."
 	values := url.Values{
 		"chat_id": {strconv.Itoa(messageData.Chat.ID)},
 		"text":    {m},
 	}
-	tg_api.SendMessage(cfg.AccessToken, values)
+	if err := tg_api.SendMessage(cfg.AccessToken, values); err != nil {
+		return err
+	}
+	return nil
+}
+
+func sendMessageAboutError(m, accessToken string, chatID int) error {
+	m += " Попробуйте позже..."
+	values := url.Values{
+		"chat_id": {strconv.Itoa(chatID)},
+		"text":    {m},
+	}
+	if err := tg_api.SendMessage(accessToken, values); err != nil {
+		return err
+	}
+	return nil
 }

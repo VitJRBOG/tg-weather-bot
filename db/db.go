@@ -11,15 +11,15 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func Connect(dbConnection tools.DBConnection) *sql.DB {
+func Connect(dbConnection tools.DBConnection) (*sql.DB, error) {
 	c := fmt.Sprintf("%s:%s@tcp(%s)/%s",
 		dbConnection.Login, dbConnection.Password, dbConnection.Address, dbConnection.DBName)
 	db, err := sql.Open("mysql", c)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
-	return db
+	return db, nil
 }
 
 type User struct {

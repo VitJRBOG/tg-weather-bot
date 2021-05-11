@@ -4,20 +4,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"runtime/debug"
 )
 
-func GetForecast(pogodaApiURL, region, date string) Forecast {
+func GetForecast(pogodaApiURL, region, date string) (Forecast, error) {
 	values := map[string]string{
 		"region": region,
 		"date":   date,
 	}
 
 	u := makeURL(pogodaApiURL, "GetForecast", values)
-	rawData := sendRequest(u)
+	rawData, err := sendRequest(u)
+	if err != nil {
+		return Forecast{}, err
+	}
 
-	forecast := parseForecastData(rawData)
-	return forecast
+	forecast, err := parseForecastData(rawData)
+	if err != nil {
+		return Forecast{}, err
+	}
+	return forecast, nil
 }
 
 func makeURL(pogodaApiURL, method string, values map[string]string) string {
@@ -67,31 +75,31 @@ type Weather struct {
 	DayCommonComm    string `json:"daycommoncomm"`
 }
 
-func parseForecastData(rawData []byte) Forecast {
+func parseForecastData(rawData []byte) (Forecast, error) {
 	var forecast Forecast
 	err := json.Unmarshal(rawData, &forecast)
 	if err != nil {
-		panic(err.Error())
+		return Forecast{}, err
 	}
-	return forecast
+	return forecast, nil
 }
 
-func sendRequest(u string) []byte {
+func sendRequest(u string) ([]byte, error) {
 	response, err := http.Get(u)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	defer func() {
 		err := response.Body.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Printf("%s\n\n%s\n", err, debug.Stack())
 		}
 	}()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
-	return body
+	return body, nil
 }

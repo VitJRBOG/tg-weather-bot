@@ -20,26 +20,31 @@ type DBConnection struct {
 	DBName   string `json:"db_name"`
 }
 
-func (c *Config) UpdateUpdatesOffset(newDate int) {
+func (c *Config) UpdateUpdatesOffset(newDate int) error {
 	c.UpdatesOffset = newDate
 
 	content, err := json.Marshal(c)
 	if err != nil {
-		panic(err.Error())
+		return err
 	}
-	ioutil.WriteFile("config.json", content, 0644)
+	err = ioutil.WriteFile("config.json", content, 0644)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func GetConfig() Config {
+func GetConfig() (Config, error) {
 	var c Config
 	content, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		panic(err.Error())
+		return Config{}, err
 	}
 	err = json.Unmarshal(content, &c)
 	if err != nil {
-		panic(err.Error())
+		return Config{}, err
 	}
 
-	return c
+	return c, err
 }

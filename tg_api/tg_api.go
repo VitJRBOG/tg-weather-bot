@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 )
 
 type Update struct {
@@ -32,16 +34,29 @@ type Chat struct {
 	ID int `json:"id"`
 }
 
-func GetUpdates(accessToken, method string, values url.Values) []Update {
+func GetUpdates(accessToken, method string, values url.Values) ([]Update, error) {
 	u := makeURL(accessToken, method)
-	rawData := sendRequest(u, values)
-	updates := parseUpdates(rawData)
-	return updates
+
+	rawData, err := sendRequest(u, values)
+	if err != nil {
+		return []Update{}, err
+	}
+
+	updates, err := parseUpdates(rawData)
+	if err != nil {
+		return []Update{}, err
+	}
+
+	return updates, nil
 }
 
-func SendMessage(accessToken string, values url.Values) {
+func SendMessage(accessToken string, values url.Values) error {
 	u := makeURL(accessToken, "sendMessage")
-	sendRequest(u, values)
+	_, err := sendRequest(u, values)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func makeURL(accessToken, method string) string {
@@ -50,7 +65,7 @@ func makeURL(accessToken, method string) string {
 	return u
 }
 
-func parseUpdates(rawData []byte) []Update {
+func parseUpdates(rawData []byte) ([]Update, error) {
 	var data struct {
 		OK          bool     `json:"ok"`
 		Updates     []Update `json:"result"`
@@ -59,32 +74,32 @@ func parseUpdates(rawData []byte) []Update {
 	}
 	err := json.Unmarshal(rawData, &data)
 	if err != nil {
-		panic(err.Error())
+		return []Update{}, err
 	}
 
 	if data.OK {
-		return data.Updates
+		return data.Updates, nil
 	}
 
-	panic(fmt.Errorf("error %d: %s", data.ErrorCode, data.Description))
+	return []Update{}, fmt.Errorf("error %d: %s", data.ErrorCode, data.Description)
 }
 
-func sendRequest(u string, values url.Values) []byte {
+func sendRequest(u string, values url.Values) ([]byte, error) {
 	response, err := http.PostForm(u, values)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	defer func() {
 		err := response.Body.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Printf("%s\n\n%s\n", err, debug.Stack())
 		}
 	}()
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
-	return body
+	return body, nil
 }
