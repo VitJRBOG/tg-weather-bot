@@ -268,8 +268,9 @@ func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather
 	f = makeDayForecastMessage(f, localForecast)
 
 	values := url.Values{
-		"chat_id": {strconv.Itoa(chatID)},
-		"text":    {f},
+		"chat_id":    {strconv.Itoa(chatID)},
+		"text":       {f},
+		"parse_mode": {"Markdown"},
 	}
 	if err := tg_api.SendMessage(botConn.AccessToken, values); err != nil {
 		return err
@@ -279,41 +280,41 @@ func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather
 
 func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string {
 	if localForecast.NightCloud != "" && localForecast.NightPrec != "" {
-		f += fmt.Sprintf("Ночью %s, %s.", localForecast.NightCloud, localForecast.NightPrec)
+		f += fmt.Sprintf("Ночью *%s*, *%s*.", localForecast.NightCloud, localForecast.NightPrec)
 	} else {
 		switch true {
 		case localForecast.NightCloud != "":
-			f += fmt.Sprintf("Ночью %s.", localForecast.NightCloud)
+			f += fmt.Sprintf("Ночью *%s*.", localForecast.NightCloud)
 		case localForecast.NightPrec != "":
-			f += fmt.Sprintf("Ночью %s.", localForecast.NightPrec)
+			f += fmt.Sprintf("Ночью *%s*.", localForecast.NightPrec)
 		}
 	}
 
 	if localForecast.NightPrecComm != "" {
-		f += fmt.Sprintf(" %s.\n", localForecast.NightPrecComm)
+		f += fmt.Sprintf(" *%s*.\n", localForecast.NightPrecComm)
 	} else {
 		f += "\n"
 	}
 
 	if localForecast.NightTemp != "" {
-		f += fmt.Sprintf("Температура ночью %s°C",
+		f += fmt.Sprintf("Температура ночью *%s°C*",
 			strings.ReplaceAll(localForecast.NightTemp, ",", "..."))
 	}
 
 	if localForecast.NightTempComm != "" {
-		f += fmt.Sprintf(", %sC.\n",
+		f += fmt.Sprintf(", *%sC*.\n",
 			strings.ToLower(strings.ReplaceAll(localForecast.NightTempComm, ",", "...")))
 	} else {
 		f += ".\n"
 	}
 
 	if localForecast.NightWindDirrect != "" && localForecast.NightWindSpeed != "" {
-		f += fmt.Sprintf("Ветер %s, %s м/с. ",
+		f += fmt.Sprintf("Ветер *%s*, *%s м/с*. ",
 			localForecast.NightWindDirrect, localForecast.NightWindSpeed)
 	}
 
 	if localForecast.NightWindComm != "" {
-		f += fmt.Sprintf("%s.\n", localForecast.NightWindComm)
+		f += fmt.Sprintf("*%s*.\n", localForecast.NightWindComm)
 	} else {
 		f += "\n"
 	}
@@ -323,41 +324,41 @@ func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string
 
 func makeDayForecastMessage(f string, localForecast pogoda_api.Weather) string {
 	if localForecast.DayCloud != "" && localForecast.DayPrec != "" {
-		f += fmt.Sprintf("\nДнем %s, %s.", localForecast.DayCloud, localForecast.DayPrec)
+		f += fmt.Sprintf("\nДнем *%s*, *%s*.", localForecast.DayCloud, localForecast.DayPrec)
 	} else {
 		switch true {
 		case localForecast.DayCloud != "":
-			f += fmt.Sprintf("Днем %s.", localForecast.DayCloud)
+			f += fmt.Sprintf("Днем *%s*.", localForecast.DayCloud)
 		case localForecast.DayPrec != "":
-			f += fmt.Sprintf("Днем %s.", localForecast.DayPrec)
+			f += fmt.Sprintf("Днем *%s*.", localForecast.DayPrec)
 		}
 	}
 
 	if localForecast.DayPrecComm != "" {
-		f += fmt.Sprintf(" %s.\n", localForecast.DayPrecComm)
+		f += fmt.Sprintf(" *%s*.\n", localForecast.DayPrecComm)
 	} else {
 		f += "\n"
 	}
 
 	if localForecast.DayTemp != "" {
-		f += fmt.Sprintf("Температура днем %s°C",
+		f += fmt.Sprintf("Температура днем *%s°C*",
 			strings.ReplaceAll(localForecast.DayTemp, ",", "..."))
 	}
 
 	if localForecast.DayTempComm != "" {
-		f += fmt.Sprintf(", %sC.\n",
+		f += fmt.Sprintf(", *%sC*.\n",
 			strings.ToLower(strings.ReplaceAll(localForecast.DayTempComm, ",", "...")))
 	} else {
 		f += ".\n"
 	}
 
 	if localForecast.DayWindDirrect != "" && localForecast.DayWindSpeed != "" {
-		f += fmt.Sprintf("Ветер %s, %s м/с. ",
+		f += fmt.Sprintf("Ветер *%s*, *%s м/с*. ",
 			localForecast.DayWindDirrect, localForecast.DayWindSpeed)
 	}
 
 	if localForecast.DayWindComm != "" {
-		f += fmt.Sprintf("%s.", localForecast.DayWindComm)
+		f += fmt.Sprintf("*%s*.", localForecast.DayWindComm)
 	}
 
 	return f
