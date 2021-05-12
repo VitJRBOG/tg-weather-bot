@@ -95,7 +95,7 @@ func (u *User) SelectFrom(db *sql.DB) ([]User, error) {
 	defer func() {
 		err := rows.Close()
 		if err != nil {
-			log.Printf("%s\n\n%s\n", err, debug.Stack())
+			log.Printf("%s\n%s\n", err, debug.Stack())
 		}
 	}()
 
@@ -106,7 +106,7 @@ func (u *User) SelectFrom(db *sql.DB) ([]User, error) {
 
 		if err := rows.Scan(&user.ID, &user.Name, &user.Username,
 			&user.UserID, &user.RequestCount); err != nil {
-			panic(err.Error())
+			return []User{}, err
 		}
 
 		users = append(users, user)
