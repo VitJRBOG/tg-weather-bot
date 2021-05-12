@@ -17,22 +17,18 @@ import (
 	"github.com/VitJRBOG/TelegramWeatherBot/internal/tools"
 )
 
-func Start(botConn tools.BotConn) {
-	checkingChats(botConn)
+func Start(botConn tools.BotConn, pogodaApiConn tools.PogodaApiConn, dbConn tools.DBConn) {
+	checkingChats(botConn, pogodaApiConn, dbConn)
 }
 
-func checkingChats(botConn tools.BotConn) {
-	pogodaApiConn, err := tools.GetPogodaAPIConnectionData()
-	if err != nil {
-		log.Panicf("%s\n%s\n", err, debug.Stack())
-	}
-	dbConn, err := tools.GetDBConnectionData()
-	if err != nil {
-		log.Printf("%s\n%s\n", err, debug.Stack())
-	}
-	dbase, err := db.Connect(dbConn)
-	if err != nil {
-		log.Printf("%s\n%s\n", err, debug.Stack())
+func checkingChats(botConn tools.BotConn, pogodaApiConn tools.PogodaApiConn, dbConn tools.DBConn) {
+	var dbase *sql.DB
+	if (dbConn != tools.DBConn{}) {
+		var err error
+		dbase, err = db.Connect(dbConn)
+		if err != nil {
+			log.Printf("%s\n%s\n", err, debug.Stack())
+		}
 	}
 	handlers := make(map[int]chan tg_api.Message)
 
@@ -91,36 +87,9 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message,
 	for {
 		messageData := <-channel
 
-		go func(sender tg_api.User) {
-			var user db.User
-
-			user.UserID = sender.ID
-
-			users, err := user.SelectFrom(dbase)
-			if err != nil {
-				log.Printf("%s\n%s\n", err, debug.Stack())
-				return
-			}
-
-			if len(users) == 0 {
-				user.Name = fmt.Sprintf("%s %s",
-					sender.FirstName, sender.LastName)
-				user.Username = sender.Username
-				user.RequestCount = 1
-				_, _, err := user.InsertInto(dbase)
-				if err != nil {
-					log.Printf("%s\n%s\n", err, debug.Stack())
-					return
-				}
-			} else {
-				users[0].RequestCount++
-				_, _, err := users[0].Update(dbase)
-				if err != nil {
-					log.Printf("%s\n%s\n", err, debug.Stack())
-					return
-				}
-			}
-		}(messageData.From)
+		if dbase != nil {
+			go updateDB(dbase, messageData.From)
+		}
 
 		if district == 0 {
 			var err error
@@ -149,6 +118,37 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message,
 				channel = nil
 				break
 			}
+		}
+	}
+}
+
+func updateDB(dbase *sql.DB, sender tg_api.User) {
+	var user db.User
+
+	user.UserID = sender.ID
+
+	users, err := user.SelectFrom(dbase)
+	if err != nil {
+		log.Printf("%s\n%s\n", err, debug.Stack())
+		return
+	}
+
+	if len(users) == 0 {
+		user.Name = fmt.Sprintf("%s %s",
+			sender.FirstName, sender.LastName)
+		user.Username = sender.Username
+		user.RequestCount = 1
+		_, _, err := user.InsertInto(dbase)
+		if err != nil {
+			log.Printf("%s\n%s\n", err, debug.Stack())
+			return
+		}
+	} else {
+		users[0].RequestCount++
+		_, _, err := users[0].Update(dbase)
+		if err != nil {
+			log.Printf("%s\n%s\n", err, debug.Stack())
+			return
 		}
 	}
 }

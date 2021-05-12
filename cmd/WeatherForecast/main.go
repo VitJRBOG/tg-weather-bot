@@ -13,5 +13,13 @@ func main() {
 	if err != nil {
 		log.Panicf("%s\n%s\n", err, debug.Stack())
 	}
-	bot.Start(botConn)
+	pogodaApiConn, err := tools.GetPogodaAPIConnectionData()
+	if err != nil {
+		log.Panicf("%s\n%s\n", err, debug.Stack())
+	}
+	dbConn, err := tools.GetDBConnectionData()
+	if err != nil {
+		log.Printf("%s\n%s\n", err, debug.Stack())
+	}
+	bot.Start(botConn, pogodaApiConn, dbConn)
 }
