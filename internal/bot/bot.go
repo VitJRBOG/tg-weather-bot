@@ -263,9 +263,8 @@ func sendHint(accessToken, m string, chatId int) error {
 }
 
 func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather, chatID int) error {
-	f := ""
-	f = makeNightForecastMessage(f, localForecast)
-	f = makeDayForecastMessage(f, localForecast)
+	f := fmt.Sprintf("_НОЧЬ_\n%s\n\n_ДЕНЬ_\n%s",
+		makeNightForecastMessage(localForecast), makeDayForecastMessage(localForecast))
 
 	values := url.Values{
 		"chat_id":    {strconv.Itoa(chatID)},
@@ -278,90 +277,91 @@ func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather
 	return nil
 }
 
-func makeNightForecastMessage(f string, localForecast pogoda_api.Weather) string {
-	if localForecast.NightCloud != "" && localForecast.NightPrec != "" {
-		f += fmt.Sprintf("Ночью *%s*, *%s*.", localForecast.NightCloud, localForecast.NightPrec)
-	} else {
-		switch true {
-		case localForecast.NightCloud != "":
-			f += fmt.Sprintf("Ночью *%s*.", localForecast.NightCloud)
-		case localForecast.NightPrec != "":
-			f += fmt.Sprintf("Ночью *%s*.", localForecast.NightPrec)
-		}
-	}
-
-	if localForecast.NightPrecComm != "" {
-		f += fmt.Sprintf(" *%s*.\n", localForecast.NightPrecComm)
-	} else {
-		f += "\n"
-	}
-
-	if localForecast.NightTemp != "" {
-		f += fmt.Sprintf("Температура ночью *%s°C*",
-			strings.ReplaceAll(localForecast.NightTemp, ",", "..."))
-	}
-
-	if localForecast.NightTempComm != "" {
-		f += fmt.Sprintf(", *%sC*.\n",
-			strings.ToLower(strings.ReplaceAll(localForecast.NightTempComm, ",", "...")))
-	} else {
-		f += ".\n"
-	}
-
-	if localForecast.NightWindDirrect != "" && localForecast.NightWindSpeed != "" {
-		f += fmt.Sprintf("Ветер *%s*, *%s м/с*. ",
-			localForecast.NightWindDirrect, localForecast.NightWindSpeed)
-	}
-
-	if localForecast.NightWindComm != "" {
-		f += fmt.Sprintf("*%s*.\n", localForecast.NightWindComm)
-	} else {
-		f += "\n"
-	}
-
-	return f
+type weatherForecast struct {
+	Text string
 }
 
-func makeDayForecastMessage(f string, localForecast pogoda_api.Weather) string {
-	if localForecast.DayCloud != "" && localForecast.DayPrec != "" {
-		f += fmt.Sprintf("\nДнем *%s*, *%s*.", localForecast.DayCloud, localForecast.DayPrec)
+func (w *weatherForecast) setCloudAndPrecipitation(cloudCondition, precCondition string) {
+	if cloudCondition != "" && precCondition != "" {
+		cloudCondition = strings.ToUpper(string([]rune(cloudCondition)[0])) +
+			strings.ToLower(string([]rune(cloudCondition)[1:]))
+		w.Text += fmt.Sprintf("*%s*, *%s*.", cloudCondition, strings.ToLower(precCondition))
 	} else {
 		switch true {
-		case localForecast.DayCloud != "":
-			f += fmt.Sprintf("Днем *%s*.", localForecast.DayCloud)
-		case localForecast.DayPrec != "":
-			f += fmt.Sprintf("Днем *%s*.", localForecast.DayPrec)
+		case cloudCondition != "":
+			cloudCondition = strings.ToUpper(string([]rune(cloudCondition)[0])) +
+				strings.ToLower(string([]rune(cloudCondition)[1:]))
+			w.Text += fmt.Sprintf("*%s*.", cloudCondition)
+		case precCondition != "":
+			precCondition = strings.ToUpper(string([]rune(precCondition)[0])) +
+				strings.ToLower(string([]rune(precCondition)[1:]))
+			w.Text += fmt.Sprintf("*%s*.", precCondition)
 		}
 	}
+}
 
-	if localForecast.DayPrecComm != "" {
-		f += fmt.Sprintf(" *%s*.\n", localForecast.DayPrecComm)
+func (w *weatherForecast) setPrecipitationCommon(precCondition string) {
+	if precCondition != "" {
+		precCondition = strings.ToUpper(string([]rune(precCondition)[0])) +
+			strings.ToLower(string([]rune(precCondition)[1:]))
+		w.Text += fmt.Sprintf(" *%s*.\n", precCondition)
 	} else {
-		f += "\n"
+		w.Text += "\n"
 	}
+}
 
-	if localForecast.DayTemp != "" {
-		f += fmt.Sprintf("Температура днем *%s°C*",
-			strings.ReplaceAll(localForecast.DayTemp, ",", "..."))
+func (w *weatherForecast) setTemperature(tempCondition string) {
+	if tempCondition != "" {
+		tempCondition = strings.ReplaceAll(tempCondition, ",", "...")
+		w.Text += fmt.Sprintf("Температура *%s°C*", tempCondition)
 	}
+}
 
-	if localForecast.DayTempComm != "" {
-		f += fmt.Sprintf(", *%sC*.\n",
-			strings.ToLower(strings.ReplaceAll(localForecast.DayTempComm, ",", "...")))
+func (w *weatherForecast) setTemperatureCommon(tempCondition string) {
+	if tempCondition != "" {
+		tempCondition = strings.ToLower(strings.ReplaceAll(tempCondition, ",", "..."))
+		w.Text += fmt.Sprintf(", *%sC*.\n", tempCondition)
 	} else {
-		f += ".\n"
+		w.Text += ".\n"
 	}
+}
 
-	if localForecast.DayWindDirrect != "" && localForecast.DayWindSpeed != "" {
-		f += fmt.Sprintf("Ветер *%s*, *%s м/с*. ",
-			localForecast.DayWindDirrect, localForecast.DayWindSpeed)
+func (w *weatherForecast) setWindDirectionAndSpeed(windDirection, windSpeed string) {
+	if windDirection != "" && windSpeed != "" {
+		w.Text += fmt.Sprintf("Ветер *%s*, *%s м/с*. ", windDirection, windSpeed)
 	}
+}
 
-	if localForecast.DayWindComm != "" {
-		f += fmt.Sprintf("*%s*.", localForecast.DayWindComm)
+func (w *weatherForecast) setWindCommon(windCondition string) {
+	if windCondition != "" {
+		w.Text += fmt.Sprintf("*%s*.", windCondition)
 	}
+}
 
-	return f
+func makeNightForecastMessage(localForecast pogoda_api.Weather) string {
+	var w weatherForecast
+
+	w.setCloudAndPrecipitation(localForecast.NightCloud, localForecast.NightPrec)
+	w.setPrecipitationCommon(localForecast.NightPrecComm)
+	w.setTemperature(localForecast.NightTemp)
+	w.setTemperatureCommon(localForecast.NightTempComm)
+	w.setWindDirectionAndSpeed(localForecast.NightWindDirrect, localForecast.NightWindSpeed)
+	w.setWindCommon(localForecast.NightWindComm)
+
+	return w.Text
+}
+
+func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
+	var w weatherForecast
+
+	w.setCloudAndPrecipitation(localForecast.DayCloud, localForecast.DayPrec)
+	w.setPrecipitationCommon(localForecast.DayPrecComm)
+	w.setTemperature(localForecast.DayTemp)
+	w.setTemperatureCommon(localForecast.DayTempComm)
+	w.setWindDirectionAndSpeed(localForecast.DayWindDirrect, localForecast.DayWindSpeed)
+	w.setWindCommon(localForecast.DayWindComm)
+
+	return w.Text
 }
 
 func unixTimestampToHumanReadableFormat(ut int64) string {
