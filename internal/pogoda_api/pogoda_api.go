@@ -55,6 +55,8 @@ type Forecast struct {
 	Samara         Weather `json:"1"` // FIXME: уточнить, возможно это Тольятти
 	Tolyatti       Weather `json:"9"` // FIXME: уточнить, возможно это Самара
 	Syzran         Weather `json:"8"`
+	SaratovOblast  Weather `json:"185"`
+	Saratov        Weather `json:"38"`
 }
 
 type Weather struct {

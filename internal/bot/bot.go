@@ -254,6 +254,10 @@ func selectLocalForecast(forecast pogoda_api.Forecast, district int) pogoda_api.
 		return forecast.Tolyatti
 	case 8:
 		return forecast.Syzran
+	case 185:
+		return forecast.SaratovOblast
+	case 38:
+		return forecast.Saratov
 	}
 	return pogoda_api.Weather{}
 }
@@ -280,6 +284,10 @@ func checkDistrict(message string) (string, int, string) {
 		return "3", 9, "Запрос прогноза погоды по Тольятти."
 	case message == "/syzran":
 		return "3", 8, "Запрос прогноза погоды по Сызрани."
+	case message == "/saratov_oblast":
+		return "4", 185, "Запрос прогноза погоды по Саратовской области."
+	case message == "/saratov":
+		return "4", 38, "Запрос прогноза погоды по Саратову."
 	}
 	return "0", 0, "Для выбора региона/города введите «/» («слэш», без кавычек)..."
 }
