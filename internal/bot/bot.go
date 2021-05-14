@@ -157,9 +157,14 @@ func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (
 	m := ""
 	district := 0
 	if district, m = checkDistrict(messageData.Text); district > 0 {
-		m = fmt.Sprintf("%s Для получения прогноза погоды отправьте дату "+
-			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
-			m, unixTimestampToHumanReadableFormat(time.Now().Unix()))
+		datesInDigits, datesInWords := getDates()
+		m = fmt.Sprintf("%s Для получения прогноза погоды выберите дату из списка:"+
+			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
+			"\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s",
+			m, datesInWords[0], datesInDigits[0],
+			datesInWords[1], datesInDigits[1],
+			datesInWords[2], datesInDigits[2],
+			datesInWords[3], datesInDigits[3])
 		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
 			return 0, err
 		}
@@ -180,7 +185,8 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		return false, err
 	}
 	if dateRecognized {
-		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, "1", messageData.Text)
+		date := insertDashes([]rune(messageData.Text)[1:])
+		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, "1", date)
 		if err != nil {
 			return false, err
 		}
@@ -207,16 +213,31 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		}
 		ok = true
 	} else {
+		datesInDigits, datesInWords := getDates()
 		m := fmt.Sprintf("Дата не распознана. "+
-			"Для получения прогноза погоды отправьте дату "+
-			"нужного прогноза в формате ГГГГ-ММ-ДД.\nНапример (без кавычек): «%s».",
-			unixTimestampToHumanReadableFormat(time.Now().Unix()))
+			"Для получения прогноза погоды выберите дату из списка:"+
+			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
+			"\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s",
+			datesInWords[0], datesInDigits[0],
+			datesInWords[1], datesInDigits[1],
+			datesInWords[2], datesInDigits[2],
+			datesInWords[3], datesInDigits[3])
 		if err := sendHint(botConn.AccessToken, m, messageData.Chat.ID); err != nil {
 			return false, err
 		}
 	}
 
 	return ok, nil
+}
+
+func insertDashes(date []rune) string {
+	var d []rune
+	d = append(d, []rune(date)[:4]...)
+	d = append(d, '-')
+	d = append(d, []rune(date)[4:6]...)
+	d = append(d, '-')
+	d = append(d, []rune(date)[6:]...)
+	return string(d)
 }
 
 func checkDistrict(message string) (int, string) {
@@ -230,14 +251,12 @@ func checkDistrict(message string) (int, string) {
 	case message == "/orsk":
 		return 112, "Запрос прогноза погоды по Орску."
 	}
-	return 0, "Команда не распознана. " +
-		"Для выбора региона/города введите «/» («слэш», без кавычек) " +
-		"и выберите вариант из списка."
+	return 0, "Для выбора региона/города введите «/» («слэш», без кавычек)..."
 }
 
 func checkDate(message string) (bool, error) {
-	if len([]rune(message)) == 10 {
-		matched, err := regexp.MatchString("[0-9]{4}-[0-9]{2}-[0-9]{2}", message)
+	if len([]rune(message)) == 9 {
+		matched, err := regexp.MatchString("/[0-9]{8}", message)
 		if err != nil {
 			return false, err
 		}
@@ -253,8 +272,9 @@ func checkWeatherForecast(localForecast pogoda_api.Weather) bool {
 
 func sendHint(accessToken, m string, chatId int) error {
 	values := url.Values{
-		"chat_id": {strconv.Itoa(chatId)},
-		"text":    {m},
+		"chat_id":    {strconv.Itoa(chatId)},
+		"text":       {m},
+		"parse_mode": {"Markdown"},
 	}
 	if err := tg_api.SendMessage(accessToken, values); err != nil {
 		return err
@@ -364,10 +384,64 @@ func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	return w.Text
 }
 
+func getDates() ([]string, []string) {
+	ut := time.Now().Unix()
+	days := []int64{1, 86400, 172800, 259200}
+	var datesInDigits []string
+	var datesInWords []string
+	for _, d := range days {
+		t := ut + d
+		datesInDigits = append(datesInDigits, unixTimestampToHumanReadableFormat(t))
+		datesInWords = append(datesInWords, engMonthToRus(dateInWords(t)))
+	}
+	return datesInDigits, datesInWords
+}
+
 func unixTimestampToHumanReadableFormat(ut int64) string {
 	t := time.Unix(ut, 0)
-	dateFormat := "2006-01-02"
+	dateFormat := "20060102"
 	date := t.Format(dateFormat)
+	return date
+}
+
+func dateInWords(ut int64) string {
+	t := time.Unix(ut, 0)
+	dateFormat := "2 January"
+	date := t.Format(dateFormat)
+	return date
+}
+
+func engMonthToRus(date string) string {
+	endMonths := []string{
+		"January", "February",
+		"March", "April", "May",
+		"June", "July", "August",
+		"September", "October", "November",
+		"December",
+	}
+
+	rusMonths := map[string]string{
+		"January":   "января",
+		"February":  "февраля",
+		"March":     "марта",
+		"April":     "апреля",
+		"May":       "мая",
+		"June":      "июня",
+		"July":      "июля",
+		"August":    "августа",
+		"September": "сентября",
+		"October":   "октября",
+		"November":  "ноября",
+		"December":  "декабря",
+	}
+
+	for _, m := range endMonths {
+		if strings.Contains(date, m) {
+			date = strings.Replace(date, m, rusMonths[m], 1)
+			break
+		}
+	}
+
 	return date
 }
 
