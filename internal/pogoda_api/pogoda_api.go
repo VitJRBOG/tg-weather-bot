@@ -45,12 +45,12 @@ func makeURL(pogodaApiURL, method string, values map[string]string) string {
 }
 
 type Forecast struct {
+	OrenburgOblast  Weather `json:"182"`
 	Orenburg        Weather `json:"111"`
 	Buzuluk         Weather `json:"106"`
 	Orsk            Weather `json:"112"`
-	OrenburgOblast  Weather `json:"182"`
-	Penza           Weather `json:"154"`
 	PenzaOblast     Weather `json:"183"`
+	Penza           Weather `json:"154"`
 	SamaraOblast    Weather `json:"184"`
 	Samara          Weather `json:"1"` // FIXME: уточнить, возможно это Тольятти
 	Tolyatti        Weather `json:"9"` // FIXME: уточнить, возможно это Самара

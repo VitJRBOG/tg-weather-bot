@@ -242,10 +242,10 @@ func selectLocalForecast(forecast pogoda_api.Forecast, district int) pogoda_api.
 		return forecast.Buzuluk
 	case 112:
 		return forecast.Orsk
-	case 154:
-		return forecast.Penza
 	case 183:
 		return forecast.PenzaOblast
+	case 154:
+		return forecast.Penza
 	case 184:
 		return forecast.SamaraOblast
 	case 1:
@@ -276,10 +276,10 @@ func checkDistrict(message string) (string, int, string) {
 		return "1", 106, "Запрос прогноза погоды по Бузулуку."
 	case message == "/orsk":
 		return "1", 112, "Запрос прогноза погоды по Орску."
-	case message == "/penza":
-		return "2", 154, "Запрос прогноза погоды по Пензе."
 	case message == "/penza_oblast":
 		return "2", 183, "Запрос прогноза погоды по Пензенской области."
+	case message == "/penza":
+		return "2", 154, "Запрос прогноза погоды по Пензе."
 	case message == "/samara_oblast":
 		return "3", 184, "Запрос прогноза погоды по Самарской области."
 	case message == "/samara":
