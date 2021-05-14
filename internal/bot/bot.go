@@ -83,6 +83,7 @@ func updateOffset(botConn *tools.BotConn, newOffset int) error {
 
 func handlingRequest(dbase *sql.DB, channel chan tg_api.Message,
 	botConn tools.BotConn, pogodaApiConn tools.PogodaApiConn) {
+	region := "0"
 	district := 0
 	for {
 		messageData := <-channel
@@ -93,7 +94,7 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message,
 
 		if district == 0 {
 			var err error
-			district, err = handlingDistrictSelection(botConn.AccessToken, messageData)
+			region, district, err = handlingDistrictSelection(botConn.AccessToken, messageData)
 			if err != nil {
 				log.Printf("%s\n%s\n", err, debug.Stack())
 				m := "При выборе региона/города произошла ошибка."
@@ -104,7 +105,7 @@ func handlingRequest(dbase *sql.DB, channel chan tg_api.Message,
 				return
 			}
 		} else {
-			ok, err := handlingDateSelection(botConn, pogodaApiConn, district, messageData)
+			ok, err := handlingDateSelection(botConn, pogodaApiConn, region, district, messageData)
 			if err != nil {
 				log.Printf("%s\n%s\n", err, debug.Stack())
 				m := "При получении прогноза произошла ошибка."
@@ -153,10 +154,11 @@ func updateDB(dbase *sql.DB, sender tg_api.User) {
 	}
 }
 
-func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (int, error) {
+func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (string, int, error) {
 	m := ""
+	region := "0"
 	district := 0
-	if district, m = checkDistrict(messageData.Text); district > 0 {
+	if region, district, m = checkDistrict(messageData.Text); district > 0 {
 		datesInDigits, datesInWords := getDates()
 		m = fmt.Sprintf("%s Для получения прогноза погоды выберите дату из списка:"+
 			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
@@ -166,19 +168,19 @@ func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (
 			datesInWords[2], datesInDigits[2],
 			datesInWords[3], datesInDigits[3])
 		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
-			return 0, err
+			return "0", 0, err
 		}
 	} else {
 		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
-			return 0, err
+			return "0", 0, err
 		}
 	}
 
-	return district, nil
+	return region, district, nil
 }
 
 func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiConn,
-	district int, messageData tg_api.Message) (bool, error) {
+	region string, district int, messageData tg_api.Message) (bool, error) {
 	ok := false
 	dateRecognized, err := checkDate(messageData.Text)
 	if err != nil {
@@ -186,7 +188,7 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 	}
 	if dateRecognized {
 		date := insertDashes([]rune(messageData.Text)[1:])
-		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, "1", date)
+		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, region, date)
 		if err != nil {
 			return false, err
 		}
@@ -240,22 +242,30 @@ func selectLocalForecast(forecast pogoda_api.Forecast, district int) pogoda_api.
 		return forecast.Buzuluk
 	case 112:
 		return forecast.Orsk
+	case 154:
+		return forecast.Penza
+	case 183:
+		return forecast.PenzaOblast
 	}
 	return pogoda_api.Weather{}
 }
 
-func checkDistrict(message string) (int, string) {
+func checkDistrict(message string) (string, int, string) {
 	switch true {
 	case message == "/orenburg_oblast":
-		return 182, "Запрос прогноза погоды по Оренбургской области."
+		return "1", 182, "Запрос прогноза погоды по Оренбургской области."
 	case message == "/orenburg":
-		return 111, "Запрос прогноза погоды по Оренбургу."
+		return "1", 111, "Запрос прогноза погоды по Оренбургу."
 	case message == "/buzuluk":
-		return 106, "Запрос прогноза погоды по Бузулуку."
+		return "1", 106, "Запрос прогноза погоды по Бузулуку."
 	case message == "/orsk":
-		return 112, "Запрос прогноза погоды по Орску."
+		return "1", 112, "Запрос прогноза погоды по Орску."
+	case message == "/penza":
+		return "2", 154, "Запрос прогноза погоды по Пензе."
+	case message == "/penza_oblast":
+		return "2", 183, "Запрос прогноза погоды по Пензенской области."
 	}
-	return 0, "Для выбора региона/города введите «/» («слэш», без кавычек)..."
+	return "0", 0, "Для выбора региона/города введите «/» («слэш», без кавычек)..."
 }
 
 func checkDate(message string) (bool, error) {

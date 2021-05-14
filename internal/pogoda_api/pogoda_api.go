@@ -49,6 +49,8 @@ type Forecast struct {
 	Buzuluk        Weather `json:"106"`
 	Orsk           Weather `json:"112"`
 	OrenburgOblast Weather `json:"182"`
+	Penza          Weather `json:"154"`
+	PenzaOblast    Weather `json:"183"`
 }
 
 type Weather struct {
