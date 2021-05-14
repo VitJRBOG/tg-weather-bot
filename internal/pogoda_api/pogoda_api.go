@@ -45,18 +45,20 @@ func makeURL(pogodaApiURL, method string, values map[string]string) string {
 }
 
 type Forecast struct {
-	Orenburg       Weather `json:"111"`
-	Buzuluk        Weather `json:"106"`
-	Orsk           Weather `json:"112"`
-	OrenburgOblast Weather `json:"182"`
-	Penza          Weather `json:"154"`
-	PenzaOblast    Weather `json:"183"`
-	SamaraOblast   Weather `json:"184"`
-	Samara         Weather `json:"1"` // FIXME: уточнить, возможно это Тольятти
-	Tolyatti       Weather `json:"9"` // FIXME: уточнить, возможно это Самара
-	Syzran         Weather `json:"8"`
-	SaratovOblast  Weather `json:"185"`
-	Saratov        Weather `json:"38"`
+	Orenburg        Weather `json:"111"`
+	Buzuluk         Weather `json:"106"`
+	Orsk            Weather `json:"112"`
+	OrenburgOblast  Weather `json:"182"`
+	Penza           Weather `json:"154"`
+	PenzaOblast     Weather `json:"183"`
+	SamaraOblast    Weather `json:"184"`
+	Samara          Weather `json:"1"` // FIXME: уточнить, возможно это Тольятти
+	Tolyatti        Weather `json:"9"` // FIXME: уточнить, возможно это Самара
+	Syzran          Weather `json:"8"`
+	SaratovOblast   Weather `json:"185"`
+	Saratov         Weather `json:"38"`
+	UlyanovskOblast Weather `json:"186"`
+	Ulyanovsk       Weather `json:"80"`
 }
 
 type Weather struct {
