@@ -190,17 +190,7 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		if err != nil {
 			return false, err
 		}
-		var localForecast pogoda_api.Weather
-		switch district {
-		case 182:
-			localForecast = forecast.OrenburgOblast
-		case 111:
-			localForecast = forecast.Orenburg
-		case 106:
-			localForecast = forecast.Buzuluk
-		case 112:
-			localForecast = forecast.Orsk
-		}
+		localForecast := selectLocalForecast(forecast, district)
 		forecastAvailable := checkWeatherForecast(localForecast)
 		if forecastAvailable {
 			if err := sendWeatherForecast(botConn, localForecast, messageData.Chat.ID); err != nil {
@@ -238,6 +228,20 @@ func insertDashes(date []rune) string {
 	d = append(d, '-')
 	d = append(d, []rune(date)[6:]...)
 	return string(d)
+}
+
+func selectLocalForecast(forecast pogoda_api.Forecast, district int) pogoda_api.Weather {
+	switch district {
+	case 182:
+		return forecast.OrenburgOblast
+	case 111:
+		return forecast.Orenburg
+	case 106:
+		return forecast.Buzuluk
+	case 112:
+		return forecast.Orsk
+	}
+	return pogoda_api.Weather{}
 }
 
 func checkDistrict(message string) (int, string) {
