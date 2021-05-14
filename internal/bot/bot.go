@@ -246,6 +246,14 @@ func selectLocalForecast(forecast pogoda_api.Forecast, district int) pogoda_api.
 		return forecast.Penza
 	case 183:
 		return forecast.PenzaOblast
+	case 184:
+		return forecast.SamaraOblast
+	case 1:
+		return forecast.Samara
+	case 9:
+		return forecast.Tolyatti
+	case 8:
+		return forecast.Syzran
 	}
 	return pogoda_api.Weather{}
 }
@@ -264,6 +272,14 @@ func checkDistrict(message string) (string, int, string) {
 		return "2", 154, "Запрос прогноза погоды по Пензе."
 	case message == "/penza_oblast":
 		return "2", 183, "Запрос прогноза погоды по Пензенской области."
+	case message == "/samara_oblast":
+		return "3", 184, "Запрос прогноза погоды по Самарской области."
+	case message == "/samara":
+		return "3", 1, "Запрос прогноза погоды по Самаре."
+	case message == "/tolyatti":
+		return "3", 9, "Запрос прогноза погоды по Тольятти."
+	case message == "/syzran":
+		return "3", 8, "Запрос прогноза погоды по Сызрани."
 	}
 	return "0", 0, "Для выбора региона/города введите «/» («слэш», без кавычек)..."
 }

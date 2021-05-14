@@ -51,6 +51,10 @@ type Forecast struct {
 	OrenburgOblast Weather `json:"182"`
 	Penza          Weather `json:"154"`
 	PenzaOblast    Weather `json:"183"`
+	SamaraOblast   Weather `json:"184"`
+	Samara         Weather `json:"1"` // FIXME: уточнить, возможно это Тольятти
+	Tolyatti       Weather `json:"9"` // FIXME: уточнить, возможно это Самара
+	Syzran         Weather `json:"8"`
 }
 
 type Weather struct {
