@@ -159,14 +159,14 @@ func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (
 	region := "0"
 	district := 0
 	if region, district, m = checkDistrict(messageData.Text); district > 0 {
-		datesInDigits, datesInWords := getDates()
+		dates := getDates()
 		m = fmt.Sprintf("%s Для получения прогноза погоды выберите дату из списка:"+
 			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
 			"\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s",
-			m, datesInWords[0], datesInDigits[0],
-			datesInWords[1], datesInDigits[1],
-			datesInWords[2], datesInDigits[2],
-			datesInWords[3], datesInDigits[3])
+			m, dates[0][1], dates[0][0],
+			dates[1][1], dates[1][0],
+			dates[2][1], dates[2][0],
+			dates[3][1], dates[3][0])
 		if err := sendHint(accessToken, m, messageData.Chat.ID); err != nil {
 			return "0", 0, err
 		}
@@ -205,15 +205,15 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		}
 		ok = true
 	} else {
-		datesInDigits, datesInWords := getDates()
+		dates := getDates()
 		m := fmt.Sprintf("Дата не распознана. "+
 			"Для получения прогноза погоды выберите дату из списка:"+
 			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
 			"\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s",
-			datesInWords[0], datesInDigits[0],
-			datesInWords[1], datesInDigits[1],
-			datesInWords[2], datesInDigits[2],
-			datesInWords[3], datesInDigits[3])
+			dates[0][1], dates[0][0],
+			dates[1][1], dates[1][0],
+			dates[2][1], dates[2][0],
+			dates[3][1], dates[3][0])
 		if err := sendHint(botConn.AccessToken, m, messageData.Chat.ID); err != nil {
 			return false, err
 		}
@@ -430,17 +430,19 @@ func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	return w.Text
 }
 
-func getDates() ([]string, []string) {
+func getDates() [][]string {
 	ut := time.Now().Unix()
 	days := []int64{1, 86400, 172800, 259200}
-	var datesInDigits []string
-	var datesInWords []string
+	var dates [][]string
 	for _, d := range days {
 		t := ut + d
-		datesInDigits = append(datesInDigits, unixTimestampToHumanReadableFormat(t))
-		datesInWords = append(datesInWords, engDayOfWeekToRus(engMonthToRus(dateInWords(t))))
+		date := []string{
+			unixTimestampToHumanReadableFormat(t),
+			engDayOfWeekToRus(engMonthToRus(dateInWords(t))),
+		}
+		dates = append(dates, date)
 	}
-	return datesInDigits, datesInWords
+	return dates
 }
 
 func unixTimestampToHumanReadableFormat(ut int64) string {
