@@ -186,6 +186,7 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 	if err != nil {
 		return false, err
 	}
+	dates := getDates()
 	if dateRecognized {
 		date := insertDashes([]rune(messageData.Text)[1:])
 		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, region, date)
@@ -195,7 +196,13 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		localForecast := selectLocalForecast(forecast, district)
 		forecastAvailable := checkWeatherForecast(localForecast)
 		if forecastAvailable {
-			if err := sendWeatherForecast(botConn, localForecast, messageData.Chat.ID); err != nil {
+			dateInWords := ""
+			indexOfDateInWords := findDateInWords(dates, string([]rune(messageData.Text)[1:]))
+			if indexOfDateInWords > -1 {
+				dateInWords = dates[indexOfDateInWords][1]
+			}
+			if err := sendWeatherForecast(botConn, localForecast,
+				messageData.Chat.ID, dateInWords); err != nil {
 				return false, err
 			}
 		} else {
@@ -205,7 +212,6 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 		}
 		ok = true
 	} else {
-		dates := getDates()
 		m := fmt.Sprintf("Дата не распознана. "+
 			"Для получения прогноза погоды выберите дату из списка:"+
 			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
@@ -316,6 +322,15 @@ func checkWeatherForecast(localForecast pogoda_api.Weather) bool {
 	return localForecast.Date != ""
 }
 
+func findDateInWords(dates [][]string, dateInDigits string) int {
+	for i, d := range dates {
+		if d[0] == dateInDigits {
+			return i
+		}
+	}
+	return -1
+}
+
 func sendHint(accessToken, m string, chatId int) error {
 	values := url.Values{
 		"chat_id":    {strconv.Itoa(chatId)},
@@ -328,8 +343,14 @@ func sendHint(accessToken, m string, chatId int) error {
 	return nil
 }
 
-func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather, chatID int) error {
-	f := fmt.Sprintf("_НОЧЬ_\n%s\n\n_ДЕНЬ_\n%s",
+func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather,
+	chatID int, dateInWords string) error {
+	nightDate := ""
+	if dateInWords != "" {
+		nightDate = fmt.Sprintf(" на %s", dateInWords)
+	}
+	f := fmt.Sprintf("_НОЧЬ%s_\n%s\n\n_ДЕНЬ_\n%s",
+		nightDate,
 		makeNightForecastMessage(localForecast), makeDayForecastMessage(localForecast))
 
 	values := url.Values{
