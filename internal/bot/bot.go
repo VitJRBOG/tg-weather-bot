@@ -458,7 +458,7 @@ func getDates() [][]string {
 	for _, d := range days {
 		t := ut + d
 		date := []string{
-			unixTimestampToHumanReadableFormat(t),
+			dateInDigits(t),
 			engDayOfWeekToRus(engMonthToRus(dateInWords(t))),
 		}
 		dates = append(dates, date)
@@ -466,7 +466,7 @@ func getDates() [][]string {
 	return dates
 }
 
-func unixTimestampToHumanReadableFormat(ut int64) string {
+func dateInDigits(ut int64) string {
 	t := time.Unix(ut, 0)
 	dateFormat := "20060102"
 	date := t.Format(dateFormat)
