@@ -438,7 +438,7 @@ func getDates() ([]string, []string) {
 	for _, d := range days {
 		t := ut + d
 		datesInDigits = append(datesInDigits, unixTimestampToHumanReadableFormat(t))
-		datesInWords = append(datesInWords, engMonthToRus(dateInWords(t)))
+		datesInWords = append(datesInWords, engDayOfWeekToRus(engMonthToRus(dateInWords(t))))
 	}
 	return datesInDigits, datesInWords
 }
@@ -452,7 +452,7 @@ func unixTimestampToHumanReadableFormat(ut int64) string {
 
 func dateInWords(ut int64) string {
 	t := time.Unix(ut, 0)
-	dateFormat := "2 January"
+	dateFormat := "2 January, Monday"
 	date := t.Format(dateFormat)
 	return date
 }
@@ -484,6 +484,37 @@ func engMonthToRus(date string) string {
 	for _, m := range endMonths {
 		if strings.Contains(date, m) {
 			date = strings.Replace(date, m, rusMonths[m], 1)
+			break
+		}
+	}
+
+	return date
+}
+
+func engDayOfWeekToRus(date string) string {
+	engDayweeks := []string{
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
+	}
+
+	rusDayweeks := map[string]string{
+		"Monday":    "понедельник",
+		"Tuesday":   "вторник",
+		"Wednesday": "среда",
+		"Thursday":  "четверг",
+		"Friday":    "пятница",
+		"Saturday":  "суббота",
+		"Sunday":    "воскресенье",
+	}
+
+	for _, m := range engDayweeks {
+		if strings.Contains(date, m) {
+			date = strings.Replace(date, m, rusDayweeks[m], 1)
 			break
 		}
 	}
