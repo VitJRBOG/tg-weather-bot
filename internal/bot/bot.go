@@ -159,7 +159,8 @@ func handlingDistrictSelection(accessToken string, messageData tg_api.Message) (
 	region := "0"
 	district := 0
 	if region, district, m = checkDistrict(messageData.Text); district > 0 {
-		dates := getDates()
+		timezone := getTimezone(region)
+		dates := getDates(timezone)
 		m = fmt.Sprintf("%s Для получения прогноза погоды выберите дату из списка:"+
 			"\n\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s"+
 			"\nПрогноз на *%s* - /%s\nПрогноз на *%s* - /%s",
@@ -186,7 +187,8 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 	if err != nil {
 		return false, err
 	}
-	dates := getDates()
+	timezone := getTimezone(region)
+	dates := getDates(timezone)
 	if dateRecognized {
 		date := insertDashes([]rune(messageData.Text)[1:])
 		forecast, err := pogoda_api.GetForecast(pogodaApiConn.PogodaApiURL, region, date)
@@ -451,12 +453,37 @@ func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	return w.Text
 }
 
-func getDates() [][]string {
+func getTimezone(region string) string {
+	switch region {
+	case "1":
+		return "Asia/Yekaterinburg"
+	case "2":
+		return "Europe/Moscow"
+	case "3":
+		return "Europe/Samara"
+	case "4":
+		return "Europe/Samara"
+	case "5":
+		return "Europe/Samara"
+	}
+	return ""
+}
+
+func getDates(timezone string) [][]string {
 	ut := time.Now().Unix()
 	days := []int64{1, 86400, 172800, 259200}
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		log.Printf("%s\n%s\n", err, debug.Stack())
+	}
 	var dates [][]string
 	for _, d := range days {
-		t := ut + d
+		var t time.Time
+		if loc != nil {
+			t = time.Unix(ut+d, 0).In(loc)
+		} else {
+			t = time.Unix(ut+d, 0)
+		}
 		date := []string{
 			dateInDigits(t),
 			engDayOfWeekToRus(engMonthToRus(dateInWords(t))),
@@ -466,15 +493,13 @@ func getDates() [][]string {
 	return dates
 }
 
-func dateInDigits(ut int64) string {
-	t := time.Unix(ut, 0)
+func dateInDigits(t time.Time) string {
 	dateFormat := "20060102"
 	date := t.Format(dateFormat)
 	return date
 }
 
-func dateInWords(ut int64) string {
-	t := time.Unix(ut, 0)
+func dateInWords(t time.Time) string {
 	dateFormat := "2 January, Monday"
 	date := t.Format(dateFormat)
 	return date
