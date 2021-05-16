@@ -38,7 +38,7 @@ func checkingChats(botConn tools.BotConn, pogodaApiConn tools.PogodaApiConn, dbC
 			"timeout": {strconv.Itoa(botConn.Timeout)},
 		}
 
-		updates, err := tg_api.GetUpdates(botConn.AccessToken, "getUpdates", values)
+		updates, err := tg_api.GetUpdates(botConn.AccessToken, values)
 		if err != nil {
 			if strings.Contains(err.Error(), "error 401: Unauthorized") {
 				log.Panicf("%s\n%s\n", err, debug.Stack())

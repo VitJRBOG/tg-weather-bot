@@ -34,8 +34,8 @@ type Chat struct {
 	ID int `json:"id"`
 }
 
-func GetUpdates(accessToken, method string, values url.Values) ([]Update, error) {
-	u := makeURL(accessToken, method)
+func GetUpdates(accessToken string, values url.Values) ([]Update, error) {
+	u := makeURL(accessToken, "getUpdates")
 
 	rawData, err := sendRequest(u, values)
 	if err != nil {
