@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strconv"
 )
 
 func GetForecast(pogodaApiURL, region, date string) (Forecast, error) {
@@ -26,6 +27,25 @@ func GetForecast(pogodaApiURL, region, date string) (Forecast, error) {
 		return Forecast{}, err
 	}
 	return forecast, nil
+}
+
+func GetSynoptic(pogodaApiURL, region, date string, id int) (Synoptic, error) {
+	values := map[string]string{
+		"region": region,
+	}
+
+	u := makeURL(pogodaApiURL, "GetSynopticList", values)
+	rawData, err := sendRequest(u)
+	if err != nil {
+		return Synoptic{}, err
+	}
+
+	synoptic, err := parseSynopticData(rawData, strconv.Itoa(id))
+	if err != nil {
+		return Synoptic{}, err
+	}
+
+	return synoptic, nil
 }
 
 func makeURL(pogodaApiURL, method string, values map[string]string) string {
@@ -83,6 +103,7 @@ type Weather struct {
 	DayTemp          string `json:"daytemp"`
 	DayTempComm      string `json:"daytempcomm"`
 	DayCommonComm    string `json:"daycommoncomm"`
+	Author           int    `json:"author"`
 }
 
 func parseForecastData(rawData []byte) (Forecast, error) {
@@ -92,6 +113,31 @@ func parseForecastData(rawData []byte) (Forecast, error) {
 		return Forecast{}, err
 	}
 	return forecast, nil
+}
+
+type Synoptic struct {
+	ID        int    `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Position  string `json:"position"`
+}
+
+func parseSynopticData(rawData []byte, id string) (Synoptic, error) {
+	var f map[string]interface{}
+	err := json.Unmarshal(rawData, &f)
+	if err != nil {
+		return Synoptic{}, nil
+	}
+
+	s := f[id].(map[string]interface{})
+
+	var synoptic Synoptic
+	synoptic.ID = int(s["id"].(float64))
+	synoptic.FirstName = s["first_name"].(string)
+	synoptic.LastName = s["last_name"].(string)
+	synoptic.Position = s["position"].(string)
+
+	return synoptic, nil
 }
 
 func sendRequest(u string) ([]byte, error) {

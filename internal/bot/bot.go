@@ -203,8 +203,17 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 			if indexOfDateInWords > -1 {
 				dateInWords = dates[indexOfDateInWords][1]
 			}
+			var authorSignature string
+			if localForecast.Author != 0 {
+				synoptic, err := pogoda_api.GetSynoptic(pogodaApiConn.PogodaApiURL, region,
+					date, localForecast.Author)
+				if err != nil {
+					return false, err
+				}
+				authorSignature = makeAuthorSignature(synoptic)
+			}
 			if err := sendWeatherForecast(botConn, localForecast,
-				messageData.Chat.ID, dateInWords); err != nil {
+				messageData.Chat.ID, dateInWords, authorSignature); err != nil {
 				return false, err
 			}
 		} else {
@@ -346,14 +355,18 @@ func sendHint(accessToken, m string, chatId int) error {
 }
 
 func sendWeatherForecast(botConn tools.BotConn, localForecast pogoda_api.Weather,
-	chatID int, dateInWords string) error {
+	chatID int, dateInWords, forecastAuthor string) error {
 	nightDate := ""
 	if dateInWords != "" {
 		nightDate = fmt.Sprintf(" на %s", dateInWords)
 	}
-	f := fmt.Sprintf("_НОЧЬ%s_\n%s\n\n_ДЕНЬ_\n%s",
+	signature := ""
+	if forecastAuthor != "" {
+		signature = fmt.Sprintf("\n\n_%s_", forecastAuthor)
+	}
+	f := fmt.Sprintf("_НОЧЬ%s_\n%s\n\n_ДЕНЬ_\n%s%s",
 		nightDate,
-		makeNightForecastMessage(localForecast), makeDayForecastMessage(localForecast))
+		makeNightForecastMessage(localForecast), makeDayForecastMessage(localForecast), signature)
 
 	values := url.Values{
 		"chat_id":    {strconv.Itoa(chatID)},
@@ -451,6 +464,11 @@ func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	w.setWindCommon(localForecast.DayWindComm)
 
 	return w.Text
+}
+
+func makeAuthorSignature(synoptic pogoda_api.Synoptic) string {
+	return fmt.Sprintf("Прогноз составил(а): %s %s %s",
+		synoptic.Position, synoptic.FirstName, synoptic.LastName)
 }
 
 func getTimezone(region string) string {
