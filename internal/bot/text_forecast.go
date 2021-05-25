@@ -68,7 +68,7 @@ func (w *weatherForecast) setWindCommon(windCondition string) {
 	}
 }
 
-func makeNightForecastMessage(localForecast pogoda_api.Weather) string {
+func composeNightForecastMessage(localForecast pogoda_api.Weather) string {
 	var w weatherForecast
 
 	w.setCloudAndPrecipitation(localForecast.NightCloud, localForecast.NightPrec)
@@ -81,7 +81,7 @@ func makeNightForecastMessage(localForecast pogoda_api.Weather) string {
 	return w.Text
 }
 
-func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
+func composeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	var w weatherForecast
 
 	w.setCloudAndPrecipitation(localForecast.DayCloud, localForecast.DayPrec)
@@ -94,7 +94,8 @@ func makeDayForecastMessage(localForecast pogoda_api.Weather) string {
 	return w.Text
 }
 
-func makeForecastMessage(localForecast pogoda_api.Weather, dateInWords, forecastAuthor string) string {
+func composeForecastMessage(localForecast pogoda_api.Weather,
+	dateInWords, forecastAuthor string) string {
 	nightDate := ""
 	if dateInWords != "" {
 		nightDate = fmt.Sprintf(" на %s", dateInWords)
@@ -105,7 +106,8 @@ func makeForecastMessage(localForecast pogoda_api.Weather, dateInWords, forecast
 	}
 	f := fmt.Sprintf("_НОЧЬ%s_\n%s\n\n_ДЕНЬ_\n%s%s",
 		nightDate,
-		makeNightForecastMessage(localForecast), makeDayForecastMessage(localForecast), signature)
+		composeNightForecastMessage(localForecast),
+		composeDayForecastMessage(localForecast), signature)
 
 	return f
 }

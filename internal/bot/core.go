@@ -210,9 +210,9 @@ func handlingDateSelection(botConn tools.BotConn, pogodaApiConn tools.PogodaApiC
 				if err != nil {
 					return false, err
 				}
-				authorSignature = makeAuthorSignature(synoptic)
+				authorSignature = composeAuthorSignature(synoptic)
 			}
-			forecastText := makeForecastMessage(localForecast, dateInWords, authorSignature)
+			forecastText := composeForecastMessage(localForecast, dateInWords, authorSignature)
 			if err := sendWeatherForecast(botConn, messageData.Chat.ID, forecastText); err != nil {
 				return false, err
 			}
@@ -366,7 +366,7 @@ func sendWeatherForecast(botConn tools.BotConn, chatID int, forecastText string)
 	return nil
 }
 
-func makeAuthorSignature(synoptic pogoda_api.Synoptic) string {
+func composeAuthorSignature(synoptic pogoda_api.Synoptic) string {
 	return fmt.Sprintf("Прогноз составил(а): %s %s %s",
 		synoptic.Position, synoptic.FirstName, synoptic.LastName)
 }
