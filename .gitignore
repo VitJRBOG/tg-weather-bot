@@ -1,3 +1,6 @@
+# PyCharm
+.idea/
+
 # VSCode
 .vscode/
 
@@ -8,9 +11,10 @@
 bin/
 
 # Private data
-configs/bot_conn.json
-configs/db_conn.json
+configs/bot_conf.json
+configs/db_conf.json
 
 # Other junk
 upd.sh
 log.txt
+telegram-weather-bot/path.txt
