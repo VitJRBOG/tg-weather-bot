@@ -97,9 +97,8 @@ def __add_wind_comm(wind: str):
 
 def __add_author(synoptic: pogoda_api.Synoptic):
     if synoptic is not None:
-        return "\n\n_%s%s %s %s_" % (
-            synoptic.get_position()[0].capitalize(),
-            synoptic.get_position()[1:],
+        return "\n\n_Прогноз составил(а): %s %s %s._" % (
+            synoptic.get_position(),
             synoptic.get_first_name(), synoptic.get_last_name())
     return ""
 
