@@ -32,7 +32,7 @@ def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
     day_forecast = ""
     day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(),
                                          forecast.get_day_prec())
-    day_forecast += __add_prec_common(forecast.get_day_prec())
+    day_forecast += __add_prec_common(forecast.get_day_prec_comm())
     day_forecast += __add_temp(forecast.get_day_temp())
     day_forecast += __add_temp_comm(forecast.get_day_temp_comm())
     day_forecast += __add_wind_direction_and_speed(
