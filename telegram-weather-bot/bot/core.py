@@ -207,10 +207,11 @@ def __forecast_preparing(pogoda_api_url: str, region: str, location: int,
                          date: str, msg_data: dict):
     forecast = pogoda_api.get_forecast(pogoda_api_url, region, location,
                                        date)
-    synoptic = pogoda_api.get_synoptic_data(pogoda_api_url, region,
-                                            str(forecast.get_author()))
 
     if forecast is not None:
+        synoptic = pogoda_api.get_synoptic_data(pogoda_api_url, region,
+                                                str(forecast.get_author()))
+
         msg_values = text_forecast.combine_msg_values(msg_data, forecast,
                                                       synoptic)
     else:
