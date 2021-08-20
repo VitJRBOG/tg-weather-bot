@@ -10,9 +10,11 @@ def combine_msg_values(msg_data: dict, forecast: pogoda_api.Forecast,
                        synoptic: pogoda_api.Synoptic):
     v = tg_api.MessageRequestParams()
     v.set_chat_id(msg_data["from"]["id"])
-    v.set_text(
-        __compose_msg_text(forecast, __prepare_date(forecast.get_date()),
-                           synoptic))
+
+    msg_text = __compose_msg_text(forecast, __prepare_date(forecast.get_date()), synoptic)
+    msg_text = __erase_redundant_spaces(msg_text)
+
+    v.set_text(msg_text)
 
     return v
 
@@ -101,6 +103,21 @@ def __add_author(synoptic: pogoda_api.Synoptic):
             synoptic.get_position(),
             synoptic.get_first_name(), synoptic.get_last_name())
     return ""
+
+
+def __erase_redundant_spaces(text: str):
+    new_text = ""
+
+    for i, _ in enumerate(text):
+        if i == 0:
+            new_text += text[i]
+            continue
+        else:
+            if text[i] == " " and text[i-1] == " ":
+                continue
+        new_text += text[i]
+    
+    return new_text
 
 
 def __prepare_date(date: str):
