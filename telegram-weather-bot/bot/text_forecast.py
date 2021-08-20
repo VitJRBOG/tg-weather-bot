@@ -22,8 +22,11 @@ def combine_msg_values(msg_data: dict, forecast: pogoda_api.Forecast,
 def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
                        synoptic: pogoda_api.Synoptic):
     night_forecast = ""
-    night_forecast += __add_cloud_and_prec(forecast.get_night_cloud(),
-                                           forecast.get_night_prec())
+    if forecast.get_night_prec_vision():
+        night_forecast += __add_cloud_and_prec(forecast.get_night_cloud(),
+                                            forecast.get_night_prec())
+    else:
+        night_forecast += __add_cloud_and_prec(forecast.get_night_cloud(), "")
     night_forecast += __add_prec_common(forecast.get_night_prec_comm())
     night_forecast += __add_temp(forecast.get_night_temp())
     night_forecast += __add_temp_comm(forecast.get_night_temp_comm())
@@ -32,8 +35,10 @@ def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
     night_forecast += __add_wind_comm(forecast.get_night_wind_comm())
 
     day_forecast = ""
-    day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(),
-                                         forecast.get_day_prec())
+    if forecast.get_day_prec_vision():
+        day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(), forecast.get_day_prec())
+    else:
+        day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(), "")
     day_forecast += __add_prec_common(forecast.get_day_prec_comm())
     day_forecast += __add_temp(forecast.get_day_temp())
     day_forecast += __add_temp_comm(forecast.get_day_temp_comm())
