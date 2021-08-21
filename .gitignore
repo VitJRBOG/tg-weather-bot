@@ -17,7 +17,7 @@ configs/db_conf.json
 # Other junk
 upd.sh
 log.txt
-telegram-weather-bot/path.txt
+src/path.txt
 
 # Python cache
 __pycache__
