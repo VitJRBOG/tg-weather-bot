@@ -1,5 +1,6 @@
 # coding: utf-8
 import json
+from typing import Tuple
 import requests
 
 
@@ -14,14 +15,14 @@ class UpdatesRequestParams(object):
     def set_timeout(self, timeout: int):
         self.__timeout = timeout
 
-    def get_offset(self):
+    def get_offset(self) -> int:
         return self.__offset
 
-    def get_timeout(self):
+    def get_timeout(self) -> int:
         return self.__timeout
 
 
-def get_updates(access_token: str, params: UpdatesRequestParams):
+def get_updates(access_token: str, params: UpdatesRequestParams) -> dict:
     u = __make_url(access_token, "getUpdates")
 
     p = {
@@ -32,6 +33,7 @@ def get_updates(access_token: str, params: UpdatesRequestParams):
     data, ok = __send_request(u, p)
     if ok:
         return json.loads(data)
+    return {}
 
 
 class MessageRequestParams(object):
@@ -59,7 +61,7 @@ class MessageRequestParams(object):
         return self.__parse_mode
 
 
-def send_message(access_token: str, params: MessageRequestParams):
+def send_message(access_token: str, params: MessageRequestParams) -> dict:
     u = __make_url(access_token, "sendMessage")
 
     p = {
@@ -71,13 +73,14 @@ def send_message(access_token: str, params: MessageRequestParams):
     data, ok = __send_request(u, p)
     if ok:
         return json.loads(data)
+    return {}
 
 
-def __make_url(access_token: str, method: str):
+def __make_url(access_token: str, method: str) -> str:
     return "https://api.telegram.org/bot%s/%s" % (access_token, method)
 
 
-def __send_request(u: str, p: dict):
+def __send_request(u: str, p: dict) -> Tuple[str, bool]:
     foo = requests.post(u, p)
     if foo.status_code == 200:
         return foo.text, True

@@ -5,6 +5,7 @@ import datetime
 import threading
 import queue
 import re
+from typing import Tuple
 import tools.tools as tools
 import tools.dtime as dtime
 import tg_api.tg_api as tg_api
@@ -26,6 +27,12 @@ def __chat_listening(bot_conf: tools.BotConf, pogoda_api_url: str):
         params.set_timeout(bot_conf.get_timeout())
 
         response = tg_api.get_updates(bot_conf.get_access_token(), params)
+
+        if response == {}:
+            try:
+                raise Exception("ERROR: dict response is empty")
+            except Exception:
+                continue
 
         if len(response["result"]) > 0:
             for update_data in response["result"]:
@@ -105,7 +112,7 @@ def __user_message_processing(q: queue.Queue,
         queues.pop(update_data["message"]["from"]["id"])
 
 
-def __check_command(text: str):
+def __check_command(text: str) -> Tuple[bool, str, int]:
     if text == "/orenburg_oblast":
         return True, "1", 182
     elif text == "/orenburg":
@@ -138,19 +145,19 @@ def __check_command(text: str):
         return False, "0", 0
 
 
-def __check_date(text: str):
+def __check_date(text: str) -> bool:
     if re.match("[0-9]{8}", text[1:]) is None:
         return False
     return True
 
 
-def __convert_date(date_str: str):
+def __convert_date(date_str: str) -> str:
     d = datetime.datetime.strptime(date_str, "%Y%m%d")
 
     return d.strftime("%Y-%m-%d")
 
 
-def __get_location_name(location: int):
+def __get_location_name(location: int) -> str:
     if location == 182:
         return "Оренбургской области"
     elif location == 111:
@@ -183,7 +190,7 @@ def __get_location_name(location: int):
         return "[region_error]"
 
 
-def __list_of_dates_preparing():
+def __list_of_dates_preparing() -> str:
     today = datetime.datetime.now()
     text = ""
 
@@ -195,7 +202,7 @@ def __list_of_dates_preparing():
     return text
 
 
-def __prepare_date(date: str):
+def __prepare_date(date: str) -> str:
     date = dtime.convert_date_to_words(date)
     date = dtime.eng_month_to_rus(date)
     date = dtime.eng_dweek_to_rus(date)
@@ -203,25 +210,29 @@ def __prepare_date(date: str):
     return date
 
 
-def __forecast_preparing(pogoda_api_url: str, region: str, location: int,
-                         date: str, msg_data: dict):
-    forecast = pogoda_api.get_forecast(pogoda_api_url, region, location,
-                                       date)
+def __forecast_preparing(pogoda_api_url: str, region: str,
+                         location: int, date: str,
+                         msg_data: dict) -> tg_api.MessageRequestParams:
+    forecast, ok = pogoda_api.get_forecast(pogoda_api_url, region, location,
+                                           date)
 
-    if forecast is not None:
-        synoptic = pogoda_api.get_synoptic_data(pogoda_api_url, region,
-                                                str(forecast.get_author()))
+    if ok:
+        synoptic, ok = pogoda_api.get_synoptic_data(pogoda_api_url, region,
+                                                    str(forecast.get_author()))
 
-        msg_values = text_forecast.combine_msg_values(msg_data, forecast,
-                                                      synoptic)
-    else:
-        text = "При получении прогноза произошла ошибка. Попробуйте позже..."
-        msg_values = __compose_hint_msg(msg_data, text)
+        if ok:
+            msg_values = text_forecast.combine_msg_values(msg_data, forecast,
+                                                          synoptic)
+            return msg_values
+
+    text = "При получении прогноза произошла ошибка. Попробуйте позже..."
+    msg_values = __compose_hint_msg(msg_data, text)
 
     return msg_values
 
 
-def __compose_hint_msg(msg_data: dict, text: str):
+def __compose_hint_msg(msg_data: dict,
+                       text: str) -> tg_api.MessageRequestParams:
     v = tg_api.MessageRequestParams()
     v.set_chat_id(msg_data["from"]["id"])
     v.set_text(text)
@@ -229,7 +240,8 @@ def __compose_hint_msg(msg_data: dict, text: str):
     return v
 
 
-def __upd_updates_offset(bot_conf: tools.BotConf, new_offset: int):
+def __upd_updates_offset(bot_conf: tools.BotConf,
+                         new_offset: int) -> tools.BotConf:
     bot_conf.set_updates_offset(new_offset)
     tools.upd_bot_conf(bot_conf)
 

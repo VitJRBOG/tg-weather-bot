@@ -2,6 +2,7 @@
 
 
 import json
+from typing import Tuple
 import requests
 
 
@@ -163,7 +164,8 @@ class Forecast(object):
         return self.__author
 
 
-def get_forecast(pogoda_api_url: str, region: str, location: int, date: str):
+def get_forecast(pogoda_api_url: str, region: str, location: int,
+                 date: str) -> Tuple[Forecast, bool]:
     values = {
         "region": region,
         "date": date
@@ -172,11 +174,11 @@ def get_forecast(pogoda_api_url: str, region: str, location: int, date: str):
     u = __make_url(pogoda_api_url, "GetForecast", values)
     response, ok = __send_request(u)
     if ok and response != "{}":
-        return __parse_forecast(json.loads(response), location)
-    return None
+        return __parse_forecast(json.loads(response), location), True
+    return Forecast(), False
 
 
-def __parse_forecast(raw_data: dict, location: int):
+def __parse_forecast(raw_data: dict, location: int) -> Forecast:
     d = raw_data[str(location)]
 
     forecast = Forecast()
@@ -245,7 +247,8 @@ class Synoptic(object):
         return self.__region
 
 
-def get_synoptic_data(pogoda_api_url: str, region: str, synoptic_id: str):
+def get_synoptic_data(pogoda_api_url: str,
+                      region: str, synoptic_id: str) -> Tuple[Synoptic, bool]:
     values = {
         "region": region
     }
@@ -253,11 +256,11 @@ def get_synoptic_data(pogoda_api_url: str, region: str, synoptic_id: str):
     u = __make_url(pogoda_api_url, "GetSynopticList", values)
     response, ok = __send_request(u)
     if ok and response != "{}":
-        return __parse_synoptic_data(json.loads(response), synoptic_id)
-    return None
+        return __parse_synoptic_data(json.loads(response), synoptic_id), True
+    return Synoptic(), False
 
 
-def __parse_synoptic_data(raw_data: dict, synoptic_id: str):
+def __parse_synoptic_data(raw_data: dict, synoptic_id: str) -> Synoptic:
     synoptic = Synoptic()
 
     d = raw_data.get(synoptic_id)
@@ -268,12 +271,10 @@ def __parse_synoptic_data(raw_data: dict, synoptic_id: str):
         synoptic.set_position(raw_data[synoptic_id]["position"])
         synoptic.set_region(raw_data[synoptic_id]["region"])
 
-        return synoptic
-
-    return None
+    return synoptic
 
 
-def __make_url(pogoda_api_url: str, method: str, values: dict):
+def __make_url(pogoda_api_url: str, method: str, values: dict) -> str:
     u = "%sforecast/api/%s" % (pogoda_api_url, method)
     for i, v in enumerate(values.items()):
         if i == 0:
@@ -285,7 +286,7 @@ def __make_url(pogoda_api_url: str, method: str, values: dict):
     return u
 
 
-def __send_request(u: str):
+def __send_request(u: str) -> Tuple[str, bool]:
     foo = requests.get(u)
     if foo.status_code == 200:
         return foo.text, True

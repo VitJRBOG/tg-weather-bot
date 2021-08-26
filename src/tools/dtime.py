@@ -4,13 +4,13 @@
 import datetime
 
 
-def convert_date_to_words(date_str: str):
+def convert_date_to_words(date_str: str) -> str:
     d = datetime.datetime.strptime(date_str, "%Y-%m-%d")
 
     return d.strftime("%-d %B, %A")
 
 
-def eng_month_to_rus(date: str):
+def eng_month_to_rus(date: str) -> str:
     months = {
         "January": "января",
         "February": "февраля",
@@ -34,7 +34,7 @@ def eng_month_to_rus(date: str):
     return date
 
 
-def eng_dweek_to_rus(date: str):
+def eng_dweek_to_rus(date: str) -> str:
     days_of_the_week = {
         "Monday": "понедельник",
         "Tuesday": "вторник",

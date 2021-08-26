@@ -7,11 +7,12 @@ import pogoda_api.pogoda_api as pogoda_api
 
 
 def combine_msg_values(msg_data: dict, forecast: pogoda_api.Forecast,
-                       synoptic: pogoda_api.Synoptic):
+                       synoptic: pogoda_api.Synoptic) -> tg_api.MessageRequestParams:
     v = tg_api.MessageRequestParams()
     v.set_chat_id(msg_data["from"]["id"])
 
-    msg_text = __compose_msg_text(forecast, __prepare_date(forecast.get_date()), synoptic)
+    msg_text = __compose_msg_text(
+        forecast, __prepare_date(forecast.get_date()), synoptic)
     msg_text = __erase_redundant_spaces(msg_text)
 
     v.set_text(msg_text)
@@ -20,11 +21,11 @@ def combine_msg_values(msg_data: dict, forecast: pogoda_api.Forecast,
 
 
 def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
-                       synoptic: pogoda_api.Synoptic):
+                       synoptic: pogoda_api.Synoptic) -> str:
     night_forecast = ""
     if forecast.get_night_prec_vision():
         night_forecast += __add_cloud_and_prec(forecast.get_night_cloud(),
-                                            forecast.get_night_prec())
+                                               forecast.get_night_prec())
     else:
         night_forecast += __add_cloud_and_prec(forecast.get_night_cloud(), "")
     night_forecast += __add_prec_common(forecast.get_night_prec_comm())
@@ -36,7 +37,8 @@ def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
 
     day_forecast = ""
     if forecast.get_day_prec_vision():
-        day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(), forecast.get_day_prec())
+        day_forecast += __add_cloud_and_prec(
+            forecast.get_day_cloud(), forecast.get_day_prec())
     else:
         day_forecast += __add_cloud_and_prec(forecast.get_day_cloud(), "")
     day_forecast += __add_prec_common(forecast.get_day_prec_comm())
@@ -54,7 +56,7 @@ def __compose_msg_text(forecast: pogoda_api.Forecast, date: str,
     return forecast_text
 
 
-def __add_cloud_and_prec(cloud: str, prec: str):
+def __add_cloud_and_prec(cloud: str, prec: str) -> str:
     if cloud != "" and prec != "":
         return "*%s%s, %s.*" % (
             cloud[0].capitalize(), cloud[1:].lower(), prec.lower())
@@ -67,42 +69,42 @@ def __add_cloud_and_prec(cloud: str, prec: str):
     return ""
 
 
-def __add_prec_common(prec: str):
+def __add_prec_common(prec: str) -> str:
     if prec != "":
         return " *%s%s*.\n" % (prec[0].capitalize(), prec[1:].lower())
 
     return "\n"
 
 
-def __add_temp(temp):
+def __add_temp(temp: str) -> str:
     if temp != "":
         return "Температура *%s˚C*" % (temp.replace(",", "...", -1))
 
     return ""
 
 
-def __add_temp_comm(temp: str):
+def __add_temp_comm(temp: str) -> str:
     if temp != "":
         return ", *%sC*.\n" % (temp.replace(",", "...", -1))
 
     return ".\n"
 
 
-def __add_wind_direction_and_speed(direction: str, speed: str):
+def __add_wind_direction_and_speed(direction: str, speed: str) -> str:
     if direction != "" and speed != "":
         return "Ветер *%s*, *%s м/с*. " % (direction, speed)
 
     return ""
 
 
-def __add_wind_comm(wind: str):
+def __add_wind_comm(wind: str) -> str:
     if wind != "":
         return "*%s*." % wind
 
     return ""
 
 
-def __add_author(synoptic: pogoda_api.Synoptic):
+def __add_author(synoptic: pogoda_api.Synoptic) -> str:
     if synoptic is not None:
         return "\n\n_Прогноз составил(а): %s %s %s._" % (
             synoptic.get_position(),
@@ -110,7 +112,7 @@ def __add_author(synoptic: pogoda_api.Synoptic):
     return ""
 
 
-def __erase_redundant_spaces(text: str):
+def __erase_redundant_spaces(text: str) -> str:
     new_text = ""
 
     for i, _ in enumerate(text):
@@ -121,11 +123,11 @@ def __erase_redundant_spaces(text: str):
             if text[i] == " " and text[i-1] == " ":
                 continue
         new_text += text[i]
-    
+
     return new_text
 
 
-def __prepare_date(date: str):
+def __prepare_date(date: str) -> str:
     date = dtime.convert_date_to_words(date)
     date = dtime.eng_month_to_rus(date)
     date = dtime.eng_dweek_to_rus(date)

@@ -1,6 +1,7 @@
 # coding: utf-8
 import json
 import os
+from typing import Tuple
 
 
 class BotConf(object):
@@ -19,13 +20,13 @@ class BotConf(object):
     def set_timeout(self, timeout: int):
         self.__timeout = timeout
 
-    def get_access_token(self):
+    def get_access_token(self) -> str:
         return self.__access_token
 
-    def get_updates_offset(self):
+    def get_updates_offset(self) -> int:
         return self.__updates_offset
 
-    def get_timeout(self):
+    def get_timeout(self) -> int:
         return self.__timeout
 
 
@@ -42,17 +43,17 @@ def upd_bot_conf(bot_conf: BotConf):
     __write_file(path + "bot_conf.json", json.dumps(values, indent=4))
 
 
-def get_bot_conf():
+def get_bot_conf() -> Tuple[BotConf, bool]:
     path = __get_path()
     path = __check_last_char(path)
     text, ok = __read_file(path + "bot_conf.json")
 
     if ok:
         return _parse_bot_conf(text), ok
-    return None, ok
+    return BotConf(), ok
 
 
-def _parse_bot_conf(text: str):
+def _parse_bot_conf(text: str) -> BotConf:
     json_loads = json.loads(text)
 
     bot_conf = BotConf()
@@ -63,18 +64,19 @@ def _parse_bot_conf(text: str):
     return bot_conf
 
 
-def get_pogoda_api_url():
+def get_pogoda_api_url() -> Tuple[str, bool]:
     path = __get_path()
     path = __check_last_char(path)
     text, ok = __read_file(path + "pogoda_api.txt")
+
     if ok:
         text = __check_last_char(text)
         return text, ok
 
-    return None, ok
+    return "", ok
 
 
-def __get_path():
+def __get_path() -> str:
     with open("path.txt") as f:
         path = f.read()
 
@@ -84,7 +86,7 @@ def __get_path():
     return path
 
 
-def __check_last_char(text: str):
+def __check_last_char(text: str) -> str:
     while True:
         if text[len(text)-1] == "\n":
             text = text[:-1]
@@ -97,7 +99,7 @@ def __check_last_char(text: str):
     return text
 
 
-def __read_file(path: str):
+def __read_file(path: str) -> Tuple[str, bool]:
     text = ""
     exist = os.path.exists(path)
 
