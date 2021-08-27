@@ -5,6 +5,7 @@ import datetime
 import threading
 import queue
 import re
+import pytz
 from typing import Tuple
 import tools.tools as tools
 import tools.dtime as dtime
@@ -67,9 +68,11 @@ def __user_message_processing(q: queue.Queue,
         update_data["message"]["text"])
 
     if ok:
+        location_name = __get_location_name(location)
+        tz_name = __define_timezone(region)
+        dates = __list_of_dates_preparing(tz_name)
         text = "Запрос прогноза погоды по " + \
-               "*%s*. Выберите дату из списка:\n\n%s" % (
-                   __get_location_name(location), __list_of_dates_preparing())
+               "*%s*. Выберите дату из списка:\n\n%s" % (location_name, dates)
 
         tg_api.send_message(bot_conf.get_access_token(),
                             __compose_hint_msg(
@@ -190,8 +193,28 @@ def __get_location_name(location: int) -> str:
         return "[region_error]"
 
 
-def __list_of_dates_preparing() -> str:
+def __define_timezone(region: str) -> str:
+    if region == "1":
+        return "Asia/Yekaterinburg"
+    elif region == "2":
+        return "Europe/Moscow"
+    elif region == "3":
+        return "Europe/Samara"
+    elif region == "4":
+        return "Europe/Samara"
+    elif region == "5":
+        return "Europe/Samara"
+    else:
+        return "[timezone_error]"
+
+
+def __list_of_dates_preparing(tz_name: str) -> str:
     today = datetime.datetime.now()
+
+    if tz_name != "[timezone_error]":
+        tz = pytz.timezone(tz_name)
+        today = today.astimezone(tz)
+
     text = ""
 
     for i in range(4):
